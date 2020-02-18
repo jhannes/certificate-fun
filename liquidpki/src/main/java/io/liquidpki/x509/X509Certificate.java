@@ -1,13 +1,13 @@
 package io.liquidpki.x509;
 
+import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
+import io.liquidpki.der.ExamineCertificate;
 import io.liquidpki.x501.X501Name;
+import io.liquidpki.common.AlgorithmIdentifier;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,23 +59,6 @@ public class X509Certificate {
         }
     }
 
-    private static class AlgorithmIdentifier {
-        private Der der;
-        private Der.OBJECT_IDENTIFIER algorithm;
-        private final Der parameters;
-
-        public AlgorithmIdentifier(Der der) {
-            this.der = der;
-            Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
-            this.algorithm = (Der.OBJECT_IDENTIFIER) iterator.next();
-            this.parameters = iterator.hasNext() ? iterator.next() : null;
-        }
-
-        public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
-            out.println(indent + fieldName + "=" + algorithm.getName() + " " + parameters + (debug ? " " + der : ""));
-        }
-    }
-
     private static class CertificateVersion {
         private Der der;
         private final Der.INTEGER version;
@@ -104,23 +87,6 @@ public class X509Certificate {
 
         public void dump(PrintStream out, String fieldName, String indent) {
             out.println(indent + fieldName + "=" + notBefore.getDateTime() + " to " + notAfter.getDateTime());
-        }
-    }
-
-    private static class SubjectPublicKeyInfo {
-        private Der der;
-        private final Der.OBJECT_IDENTIFIER algorithm;
-        private final Der.BIT_STRING subjectPublicKey;
-
-        public SubjectPublicKeyInfo(Der der) {
-            this.der = der;
-            Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
-            this.algorithm = (Der.OBJECT_IDENTIFIER)((Der.SEQUENCE)iterator.next()).first();
-            this.subjectPublicKey = (Der.BIT_STRING) iterator.next();
-        }
-
-        public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
-            out.println(indent + fieldName + "=" + algorithm.getObjectIdentifier() + " " + subjectPublicKey.describeValue() + (debug ? " " + der : ""));
         }
     }
 
@@ -191,13 +157,7 @@ public class X509Certificate {
     }
 
     public static void main(String[] args) throws IOException {
-        ByteArrayOutputStream buffer;
-        try (InputStream input = new FileInputStream("local-test-certificate.crt")) {
-            buffer = new ByteArrayOutputStream();
-            input.transferTo(buffer);
-        }
-
-        for (byte[] derBytes : readPemObjects(buffer)) {
+        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-certificate.crt")) {
             new X509Certificate(derBytes).dump(System.out, false);
         }
     }

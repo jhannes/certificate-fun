@@ -31,15 +31,23 @@ public class ExamineCertificate {
     }
 
     private void run() throws IOException {
-        InputStream input = new FileInputStream(name);
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        input.transferTo(buffer);
-
-        for (byte[] derBytes : readPemObjects(buffer)) {
+        for (byte[] derBytes : readPemObjects(name)) {
             Der value = Der.parse(derBytes);
             System.out.println(value.toHexBytes());
             value.output(System.out, "");
         }
+    }
+
+    public static List<byte[]> readPemObjects(String filename) throws IOException {
+        try (InputStream input = new FileInputStream(filename)) {
+            return readPemObjects(input);
+        }
+    }
+
+    public static List<byte[]> readPemObjects(InputStream input) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        input.transferTo(buffer);
+        return readPemObjects(buffer);
     }
 
     public static List<byte[]> readPemObjects(ByteArrayOutputStream buffer) {
