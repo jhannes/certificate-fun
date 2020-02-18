@@ -23,4 +23,8 @@ public class DerCollection extends DerValue {
             child.output(out, indent + "  ");
         }
     }
+
+    public Der first() {
+        return children.get(0);
+    }
 }

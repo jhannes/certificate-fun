@@ -42,7 +42,7 @@ public class ExamineCertificate {
         }
     }
 
-    private static List<byte[]> readPemObjects(ByteArrayOutputStream buffer) {
+    public static List<byte[]> readPemObjects(ByteArrayOutputStream buffer) {
         // 🤮🤢
         List<byte[]> certificatesDer = new ArrayList<>();
         String content = new String(buffer.toByteArray());

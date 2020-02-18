@@ -3,6 +3,7 @@ package io.liquidpki.der;
 import java.io.PrintStream;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -12,6 +13,7 @@ import java.util.function.Function;
 public interface Der {
 
     Map<Integer, Function<DerValue, Der>> TAG_FACTORY = Map.of(
+            0x01, BOOLEAN::new,
             0x02, INTEGER::new,
             0x03, BIT_STRING::new,
             0x04, OCTET_STRING::new,
@@ -43,6 +45,25 @@ public interface Der {
     int fullLength();
 
 
+    class BOOLEAN extends DerValue {
+        public BOOLEAN(DerValue derValue) {
+            super(derValue);
+        }
+
+        @Override
+        protected String printValue() {
+            int b = unsignedVal(1 + getBytesForLength());
+            if (b == 0) return "false";
+            if (b == 255) return "true";
+            return "0x" + Integer.toString(b, 16);
+        }
+
+        public boolean boolValue() {
+            return unsignedVal(1 + getBytesForLength()) != 0;
+        }
+
+    }
+
     class INTEGER extends DerValue {
         public INTEGER(DerValue derValue) {
             super(derValue);
@@ -51,9 +72,13 @@ public interface Der {
         @Override
         protected String printValue() {
             if (valueLength() == 8) {
-                return "0x" + Long.toString(bytesToLong(valueOffset(), valueLength()), 16);
+                return "0x" + Long.toString(longValue(), 16);
             }
             return super.printValue();
+        }
+
+        public long longValue() {
+            return bytesToLong(valueOffset(), valueLength());
         }
     }
 
@@ -77,6 +102,11 @@ public interface Der {
         @Override
         protected String printValue() {
             return getObjectIdentifier();
+        }
+
+        public String getName() {
+            String name = Oid.get(getObjectIdentifier());
+            return name != null ? (name + " (" + getObjectIdentifier() + ")") : getObjectIdentifier();
         }
 
         public String getObjectIdentifier() {
@@ -103,7 +133,11 @@ public interface Der {
 
         @Override
         protected String printValue() {
-            return "\"" + new String(bytes, valueOffset(), valueLength()) + "\"";
+            return "\"" + stringValue() + "\"";
+        }
+
+        public String stringValue() {
+            return new String(bytes, valueOffset(), valueLength());
         }
     }
 
@@ -127,6 +161,10 @@ public interface Der {
     class SEQUENCE extends DerCollection {
         public SEQUENCE(DerValue derValue) {
             super(derValue);
+        }
+
+        public Iterator<Der> iterator() {
+            return children.iterator();
         }
     }
 
