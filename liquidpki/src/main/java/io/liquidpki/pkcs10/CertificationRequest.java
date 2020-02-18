@@ -1,6 +1,7 @@
 package io.liquidpki.pkcs10;
 
 import io.liquidpki.common.AlgorithmIdentifier;
+import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
@@ -15,6 +16,13 @@ import java.util.List;
 
 /** https://tools.ietf.org/html/rfc2986 */
 public class CertificationRequest {
+
+    public static void main(String[] args) throws IOException {
+        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-request.csr")) {
+            new CertificationRequest(derBytes).dump(System.out, false);
+        }
+    }
+
 
     private Der der;
     private final CertificationRequestInfo certificationRequestInfo;
@@ -37,13 +45,7 @@ public class CertificationRequest {
         out.println("CertificationRequest:" + (debug ? " " + der : ""));
         certificationRequestInfo.dump(out, "certificationRequestInfo", "  ", debug);
         signatureAlgorithm.dump(out, "signatureAlgorithm", "  ", debug);
-        out.println("  " + "signature" + "=" + signature.describeValue());
-    }
-
-    public static void main(String[] args) throws IOException {
-        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-request.csr")) {
-            new CertificationRequest(derBytes).dump(System.out, false);
-        }
+        out.println("  " + "signature" + "=" + signature.describeValue() + " [length=" + signature.valueLength() + "]");
     }
 
     private static class CertificationRequestInfo {
@@ -66,7 +68,7 @@ public class CertificationRequest {
             out.println(indent + fieldName + ":" + (debug ? " " + der : ""));
             out.println(indent + "  version=" + version.longValue());
             subject.dump(out, "subject", indent + "  ", debug);
-            subjectPKInfo.dump(out, "subject", indent + "  ", debug);
+            subjectPKInfo.dump(out, "subjectPKInfo", indent + "  ", debug);
             attributes.dump(out, "attributes", indent + "  ", debug);
         }
     }
@@ -74,7 +76,7 @@ public class CertificationRequest {
     private static class CRIAttributes {
         private Der der;
         private final Der.OBJECT_IDENTIFIER type;
-        private List<CRIAttribute> values = new ArrayList<>();
+        private List<Extension> values = new ArrayList<>();
 
         public CRIAttributes(Der der) {
             this.der = der;
@@ -82,31 +84,13 @@ public class CertificationRequest {
             type = (Der.OBJECT_IDENTIFIER) iterator.next();
             Iterator<Der> valuesIterator = ((Der.SEQUENCE) (((Der.SET) iterator.next()).first())).iterator();
             while (valuesIterator.hasNext()) {
-                values.add(new CRIAttribute(valuesIterator.next()));
+                values.add(new Extension(valuesIterator.next()));
             }
         }
 
         public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
             out.println(indent + fieldName + ": " + type.getName() + (debug ? " " + der : ""));
             values.forEach(a -> a.dump(out, indent + "  ", debug));
-        }
-    }
-
-    private static class CRIAttribute {
-
-        private final Der.OBJECT_IDENTIFIER type;
-        private final Der.OCTET_STRING value;
-        private Der der;
-
-        public CRIAttribute(Der der) {
-            this.der = der;
-            Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
-            type = (Der.OBJECT_IDENTIFIER)iterator.next();
-            value = ((Der.OCTET_STRING) iterator.next());
-        }
-
-        public void dump(PrintStream out, String indent, boolean debug) {
-            out.println(indent + type.getName() + " " + value.describeValue() + (debug ? " " + der : ""));
         }
     }
 }

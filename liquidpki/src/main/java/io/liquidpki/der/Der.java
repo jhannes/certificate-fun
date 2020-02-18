@@ -86,11 +86,19 @@ public interface Der {
         public BIT_STRING(DerValue derValue) {
             super(derValue);
         }
+
+        public long longValue() {
+            return bytesToLong(valueOffset(), valueLength());
+        }
     }
 
     class OCTET_STRING extends DerCollection {
         public OCTET_STRING(DerValue derValue) {
             super(derValue);
+        }
+
+        public byte[] byteArray() {
+            return super.byteArray();
         }
     }
 

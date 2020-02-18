@@ -17,10 +17,10 @@ public class ExamineCertificate {
     }
 
     public static void main(String[] args) throws IOException {
-        //new io.liquidpki.der.ExamineCertificate("local-test-request.csr").run();
+        new ExamineCertificate("local-test-request.csr").run();
         new ExamineCertificate("local-test-certificate.crt").run();
 
-        //DerFactory.read(readDerFile("local-test-keystore.p12")).output(System.out, "");
+        Der.parse(readDerFile("local-test-keystore.p12")).output(System.out, "");
     }
 
     private static byte[] readDerFile(String name) throws IOException {

@@ -40,7 +40,7 @@ public class DerValue implements Der {
         return 1 + getBytesForLength() + valueLength();
     }
 
-    protected int valueLength() {
+    public int valueLength() {
         int bytesForLength = getBytesForLength();
         if (bytesForLength > 1) {
             int length = 0;
@@ -67,6 +67,12 @@ public class DerValue implements Der {
         char[] hexChars = new char[fullLength()*2];
         toHex(offset, fullLength(), hexChars, 0);
         return new String(hexChars);
+    }
+
+    protected byte[] byteArray() {
+        byte[] result = new byte[valueLength()];
+        System.arraycopy(bytes, valueOffset(), result, 0, result.length);
+        return result;
     }
 
     /**

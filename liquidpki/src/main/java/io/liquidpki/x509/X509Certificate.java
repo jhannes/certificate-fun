@@ -1,11 +1,12 @@
 package io.liquidpki.x509;
 
+import io.liquidpki.common.AlgorithmIdentifier;
+import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
 import io.liquidpki.der.ExamineCertificate;
 import io.liquidpki.x501.X501Name;
-import io.liquidpki.common.AlgorithmIdentifier;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -13,12 +14,17 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static io.liquidpki.der.ExamineCertificate.readPemObjects;
-
 /**
  * As defined by https://tools.ietf.org/html/rfc5280
  */
 public class X509Certificate {
+
+    public static void main(String[] args) throws IOException {
+        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-certificate.crt")) {
+            Der.parse(derBytes).output(System.out, "");
+            new X509Certificate(derBytes).dump(System.out, true);
+        }
+    }
 
     private Der der;
 
@@ -74,12 +80,10 @@ public class X509Certificate {
     }
 
     private static class Validity {
-        private Der der;
         private final Der.UTCTime notBefore;
         private final Der.UTCTime notAfter;
 
         public Validity(Der der) {
-            this.der = der;
             Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
             this.notBefore = (Der.UTCTime)iterator.next(); // Inexact - should be DerTimestamp of either UTCTime or GeneralizedTime
             this.notAfter = (Der.UTCTime)iterator.next();
@@ -104,32 +108,7 @@ public class X509Certificate {
 
         public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
             out.println(indent + fieldName + ":" + (debug ? " " + der : ""));
-            extensions.forEach(e -> e.dump(out, indent + "  "));
-        }
-    }
-
-    private static class Extension {
-        private Der der;
-        private final Der.OBJECT_IDENTIFIER extnId;
-        private final Der.BOOLEAN critical;
-        private final Der.OCTET_STRING extnValue;
-
-        public Extension(Der der) {
-            this.der = der;
-            Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
-            extnId = (Der.OBJECT_IDENTIFIER)iterator.next();
-            Der next = iterator.next();
-            if (next instanceof Der.BOOLEAN) {
-                critical = (Der.BOOLEAN) next;
-                extnValue = (Der.OCTET_STRING)iterator.next();
-            } else {
-                critical = null;
-                extnValue = (Der.OCTET_STRING)next;
-            }
-        }
-
-        public void dump(PrintStream out, String indent) {
-            out.println(indent + extnId.getName() + (critical != null ? " critical=" + critical.boolValue() : "") + " " + extnValue.describeValue());
+            extensions.forEach(e -> e.dump(out, indent + "  ", debug));
         }
     }
 
@@ -153,12 +132,7 @@ public class X509Certificate {
         out.println("X509Certificate:" + (debug ? " " + der : ""));
         tbsCertificate.dump(out, "tbsCertificate", "  ", debug);
         signatureAlgorithm.dump(out, "signatureAlgorithm", "  ", debug);
-        out.println("  " + "signatureValue" + "=" + signatureValue);
+        out.println("  " + "signatureValue" + "=" + signatureValue.describeValue());
     }
 
-    public static void main(String[] args) throws IOException {
-        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-certificate.crt")) {
-            new X509Certificate(derBytes).dump(System.out, false);
-        }
-    }
 }

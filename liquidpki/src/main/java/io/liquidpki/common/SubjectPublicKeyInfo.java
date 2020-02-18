@@ -18,6 +18,6 @@ public class SubjectPublicKeyInfo {
     }
 
     public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
-        out.println(indent + fieldName + "=" + algorithm.getName() + " " + subjectPublicKey.describeValue() + (debug ? " " + der : ""));
+        out.println(indent + fieldName + "=" + algorithm.getName() + " " + subjectPublicKey.describeValue() + " [length: " + subjectPublicKey.valueLength() + "]" + (debug ? " " + der : ""));
     }
 }
