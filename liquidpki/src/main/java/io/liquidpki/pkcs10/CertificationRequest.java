@@ -25,9 +25,9 @@ public class CertificationRequest {
 
 
     private Der der;
-    private final CertificationRequestInfo certificationRequestInfo;
-    private final AlgorithmIdentifier signatureAlgorithm;
-    private final Der.BIT_STRING signature;
+    protected final CertificationRequestInfo certificationRequestInfo;
+    protected final AlgorithmIdentifier signatureAlgorithm;
+    protected final Der.BIT_STRING signature;
 
     public CertificationRequest(byte[] derBytes) {
         this(Der.parse(derBytes));
@@ -41,19 +41,12 @@ public class CertificationRequest {
         signature = (Der.BIT_STRING) iterator.next();
     }
 
-    private void dump(PrintStream out, boolean debug) {
-        out.println("CertificationRequest:" + (debug ? " " + der : ""));
-        certificationRequestInfo.dump(out, "certificationRequestInfo", "  ", debug);
-        signatureAlgorithm.dump(out, "signatureAlgorithm", "  ", debug);
-        out.println("  " + "signature" + "=" + signature.describeValue() + " [length=" + signature.valueLength() + "]");
-    }
-
-    private static class CertificationRequestInfo {
+    public static class CertificationRequestInfo {
         private Der der;
-        private final Der.INTEGER version;
-        private final X501Name subject;
-        private final SubjectPublicKeyInfo subjectPKInfo;
-        private final CRIAttributes attributes;
+        protected final Der.INTEGER version;
+        protected final X501Name subject;
+        protected final SubjectPublicKeyInfo subjectPKInfo;
+        protected final CRIAttributes attributes;
 
         public CertificationRequestInfo(Der der) {
             this.der = der;
@@ -73,10 +66,10 @@ public class CertificationRequest {
         }
     }
 
-    private static class CRIAttributes {
+    public static class CRIAttributes {
         private Der der;
-        private final Der.OBJECT_IDENTIFIER type;
-        private List<Extension> values = new ArrayList<>();
+        protected final Der.OBJECT_IDENTIFIER type;
+        protected List<Extension> values = new ArrayList<>();
 
         public CRIAttributes(Der der) {
             this.der = der;
@@ -92,5 +85,12 @@ public class CertificationRequest {
             out.println(indent + fieldName + ": " + type.getName() + (debug ? " " + der : ""));
             values.forEach(a -> a.dump(out, indent + "  ", debug));
         }
+    }
+
+    public void dump(PrintStream out, boolean debug) {
+        out.println("CertificationRequest:" + (debug ? " " + der : ""));
+        certificationRequestInfo.dump(out, "certificationRequestInfo", "  ", debug);
+        signatureAlgorithm.dump(out, "signatureAlgorithm", "  ", debug);
+        out.println("  " + "signature" + "=" + signature.describeValue() + " [length=" + signature.valueLength() + "]");
     }
 }

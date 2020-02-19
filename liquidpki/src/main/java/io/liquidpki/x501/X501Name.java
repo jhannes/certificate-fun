@@ -9,7 +9,7 @@ import java.util.List;
 
 public class X501Name {
     private Der der;
-    private List<AttributeTypeAndValue> rdnSequence = new ArrayList<>();
+    protected List<AttributeTypeAndValue> rdnSequence = new ArrayList<>();
 
     public X501Name(Der der) {
         this.der = der;
@@ -26,8 +26,8 @@ public class X501Name {
     }
 
     public static class AttributeTypeAndValue {
-        private final Der.OBJECT_IDENTIFIER type;
-        private final Der.PRINTABLE_STRING value;
+        protected final Der.OBJECT_IDENTIFIER type;
+        protected final Der.PRINTABLE_STRING value;
 
         public AttributeTypeAndValue(Der der) {
             Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();

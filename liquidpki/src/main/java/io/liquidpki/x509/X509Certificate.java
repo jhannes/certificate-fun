@@ -27,16 +27,31 @@ public class X509Certificate {
     }
 
     private Der der;
+    protected final TbsCertificate tbsCertificate;
+    protected final AlgorithmIdentifier signatureAlgorithm;
+    protected final Der.BIT_STRING signatureValue;
 
-    private static class TbsCertificate {
-        private final CertificateVersion version;
-        private final Der.INTEGER serialNumber;
-        private final AlgorithmIdentifier signature;
-        private final X501Name issuer;
-        private final Validity validity;
-        private final X501Name subject;
-        private final SubjectPublicKeyInfo subjectPublicKeyInfo;
-        private final CertificateExtensions extensions;
+    public X509Certificate(byte[] derBytes) {
+        this(Der.parse(derBytes));
+    }
+
+    public X509Certificate(Der der) {
+        this.der = der;
+        Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
+        this.tbsCertificate = new TbsCertificate(iterator.next());
+        this.signatureAlgorithm = new AlgorithmIdentifier(iterator.next());
+        this.signatureValue = (Der.BIT_STRING)iterator.next();
+    }
+
+    public static class TbsCertificate {
+        protected final CertificateVersion version;
+        protected final Der.INTEGER serialNumber;
+        protected final AlgorithmIdentifier signature;
+        protected final X501Name issuer;
+        protected final Validity validity;
+        protected final X501Name subject;
+        protected final SubjectPublicKeyInfo subjectPublicKeyInfo;
+        protected final CertificateExtensions extensions;
         private Der der;
 
         public TbsCertificate(Der der) {
@@ -67,7 +82,7 @@ public class X509Certificate {
 
     private static class CertificateVersion {
         private Der der;
-        private final Der.INTEGER version;
+        protected final Der.INTEGER version;
 
         public CertificateVersion(Der der) {
             this.der = der;
@@ -80,8 +95,8 @@ public class X509Certificate {
     }
 
     private static class Validity {
-        private final Der.UTCTime notBefore;
-        private final Der.UTCTime notAfter;
+        protected final Der.UTCTime notBefore;
+        protected final Der.UTCTime notAfter;
 
         public Validity(Der der) {
             Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
@@ -96,7 +111,7 @@ public class X509Certificate {
 
     private static class CertificateExtensions {
         private Der der;
-        private List<Extension> extensions = new ArrayList<>();
+        protected List<Extension> extensions = new ArrayList<>();
 
         public CertificateExtensions(Der der) {
             this.der = der;
@@ -112,23 +127,7 @@ public class X509Certificate {
         }
     }
 
-    private final TbsCertificate tbsCertificate;
-    private final AlgorithmIdentifier signatureAlgorithm;
-    private final Der.BIT_STRING signatureValue;
-
-    public X509Certificate(byte[] derBytes) {
-        this(Der.parse(derBytes));
-    }
-
-    public X509Certificate(Der der) {
-        this.der = der;
-        Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
-        this.tbsCertificate = new TbsCertificate(iterator.next());
-        this.signatureAlgorithm = new AlgorithmIdentifier(iterator.next());
-        this.signatureValue = (Der.BIT_STRING)iterator.next();
-    }
-
-    private void dump(PrintStream out, boolean debug) {
+    public void dump(PrintStream out, boolean debug) {
         out.println("X509Certificate:" + (debug ? " " + der : ""));
         tbsCertificate.dump(out, "tbsCertificate", "  ", debug);
         signatureAlgorithm.dump(out, "signatureAlgorithm", "  ", debug);

@@ -7,8 +7,8 @@ import java.util.Iterator;
 
 public class AlgorithmIdentifier {
     private Der der;
-    private Der.OBJECT_IDENTIFIER algorithm;
-    private final Der parameters;
+    protected Der.OBJECT_IDENTIFIER algorithm;
+    protected final Der parameters;
 
     public AlgorithmIdentifier(Der der) {
         this.der = der;

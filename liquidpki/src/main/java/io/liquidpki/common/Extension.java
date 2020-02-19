@@ -18,9 +18,9 @@ public class Extension {
     );
 
     private Der der;
-    private final Der.OBJECT_IDENTIFIER extnId;
-    private final Der.BOOLEAN critical;
-    private final ExtensionType extensionType;
+    protected final Der.OBJECT_IDENTIFIER extnId;
+    protected final Der.BOOLEAN critical;
+    protected final ExtensionType extensionType;
 
     public Extension(Der der) {
         this.der = der;
@@ -38,17 +38,12 @@ public class Extension {
         extensionType = factory.getOrDefault(extnId.getObjectIdentifier(), UnknownExtensionType::new).apply(extnValue);
     }
 
-    public void dump(PrintStream out, String indent, boolean debug) {
-        out.println(indent + extnId.getName() + (critical != null ? " critical=" + critical.boolValue() : "") + " " + (debug ? " " + der : ""));
-        extensionType.dump(out, indent + "  ");
-    }
-
     private interface ExtensionType {
         void dump(PrintStream out, String indent);
     }
 
-    private static class SANExtensionType implements ExtensionType {
-        private static Map<Integer, String> NAME_TYPE = Map.of(
+    public static class SANExtensionType implements ExtensionType {
+        protected static Map<Integer, String> NAME_TYPE = Map.of(
                 0x80, "otherName",
                 0x81, "rfc822Name",
                 0x82, "dNSName",
@@ -60,7 +55,7 @@ public class Extension {
                 0x88, "registeredID"
         );
 
-        private List<DerContextSpecificValue> generalNames = new ArrayList<>();
+        protected List<DerContextSpecificValue> generalNames = new ArrayList<>();
 
         public SANExtensionType(Der.OCTET_STRING der) {
             Iterator<Der> iterator = ((Der.SEQUENCE)Der.parse(der.byteArray())).iterator();
@@ -77,8 +72,8 @@ public class Extension {
         }
     }
 
-    private static class KeyUsageExtensionType implements ExtensionType {
-        private Map<Integer, String> USAGE_NAME = Map.of(
+    public static class KeyUsageExtensionType implements ExtensionType {
+        protected Map<Integer, String> USAGE_NAME = Map.of(
                 0b10000000, "digitalSignature",
                 0b01000000, "nonRepudiation",
                 0b00100000, "keyEncipherment",
@@ -88,7 +83,7 @@ public class Extension {
                 0b00000010, "cRLSign"
         );
 
-        private final Der.BIT_STRING keyUsage;
+        protected final Der.BIT_STRING keyUsage;
 
         public KeyUsageExtensionType(Der.OCTET_STRING der) {
             this.keyUsage = (Der.BIT_STRING)Der.parse(der.byteArray());
@@ -103,10 +98,10 @@ public class Extension {
         }
     }
 
-    private static class BasicConstraintExtensionType implements ExtensionType {
+    public static class BasicConstraintExtensionType implements ExtensionType {
 
-        private final Der.BOOLEAN ca;
-        private final Der.INTEGER pathLengthConstraint;
+        protected final Der.BOOLEAN ca;
+        protected final Der.INTEGER pathLengthConstraint;
 
         public BasicConstraintExtensionType(Der.OCTET_STRING der) {
             Iterator<Der> iterator = ((Der.SEQUENCE)Der.parse(der.byteArray())).iterator();
@@ -125,9 +120,9 @@ public class Extension {
         }
     }
 
-    private static class UnknownExtensionType implements ExtensionType {
+    public static class UnknownExtensionType implements ExtensionType {
 
-        private final Der.OCTET_STRING der;
+        protected final Der.OCTET_STRING der;
 
         public UnknownExtensionType(Der.OCTET_STRING der) {
             this.der = der;
@@ -137,5 +132,10 @@ public class Extension {
         public void dump(PrintStream out, String indent) {
             der.output(out, indent);
         }
+    }
+
+    public void dump(PrintStream out, String indent, boolean debug) {
+        out.println(indent + extnId.getName() + (critical != null ? " critical=" + critical.boolValue() : "") + " " + (debug ? " " + der : ""));
+        extensionType.dump(out, indent + "  ");
     }
 }
