@@ -1,5 +1,8 @@
 package io.liquidpki.der;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +45,8 @@ public interface Der {
         return derValue;
     }
 
+    void write(OutputStream output) throws IOException;
+
     void output(PrintStream out, String indent);
 
     int fullLength();
@@ -53,11 +58,15 @@ public interface Der {
             super(derValue);
         }
 
+        public BOOLEAN(boolean booleanValue) {
+            super(0x1, new byte[] { booleanValue ? (byte)0xff : 0 });
+        }
+
         @Override
         protected String printValue() {
             int b = unsignedVal(1 + getBytesForLength());
             if (b == 0) return "false";
-            if (b == 255) return "true";
+            if (b == 0xff) return "true";
             return "0x" + Integer.toString(b, 16);
         }
 
@@ -95,8 +104,8 @@ public interface Der {
             super(derValue);
         }
 
-        public BIT_STRING(byte[] derValue) {
-            super(0x03, derValue);
+        public BIT_STRING(byte[] bytes) {
+            super(0x03, bytes);
         }
 
         public BIT_STRING(long value) {
@@ -113,6 +122,10 @@ public interface Der {
             super(derValue);
         }
 
+        public OCTET_STRING(byte[] bytes) {
+            super(0x4, bytes);
+        }
+
         public byte[] byteArray() {
             return super.byteArray();
         }
@@ -120,6 +133,10 @@ public interface Der {
 
     class NULL extends DerValue {
         public NULL(DerValue derValue) { super(derValue); }
+
+        public NULL() {
+            super(0x5, new byte[0]);
+        }
     }
 
     class OBJECT_IDENTIFIER extends DerValue {
@@ -127,8 +144,25 @@ public interface Der {
             super(derValue);
         }
 
-        public OBJECT_IDENTIFIER(String type) {
-            super(0x13, type.getBytes()); // TODO!!!!!
+        public OBJECT_IDENTIFIER(String oid) {
+            super(0x6, serializeOid(oid));
+        }
+
+        private static byte[] serializeOid(String oid) {
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            String[] parts = oid.split("\\.");
+            int firstNode = Integer.parseInt(parts[0]), secondNode = Integer.parseInt(parts[1]);
+            buffer.write(firstNode*40 + secondNode);
+            for (int i = 2; i < parts.length; i++) {
+                long node = Long.parseLong(parts[i]);
+                int extraBytesRemaining = ((Long.toString(node, 2).length() - 1) / 7);
+                while (extraBytesRemaining > 0) {
+                    buffer.write((int)(0b1000_0000 | ((node >> 7*extraBytesRemaining) & 0b0111_1111)));
+                    extraBytesRemaining--;
+                }
+                buffer.write((int)(node & 0b0111_1111));
+            }
+            return buffer.toByteArray();
         }
 
         @Override
@@ -204,7 +238,7 @@ public interface Der {
         }
 
         public SEQUENCE(List<Der> children) {
-            super(0x31, children);
+            super(0x30, children);
         }
 
     }
@@ -217,6 +251,10 @@ public interface Der {
         public SET(byte[] encoded) {
             super(new DerValue(0x31, encoded));
         }
+
+        public SET(List<Der> children) {
+            super(0x31, children);
+        }
     }
 
     static byte[] asBytes(long value) {
@@ -226,5 +264,17 @@ public interface Der {
             value >>= 8;
         }
         return result;
+    }
+
+    static void writeLength(OutputStream buffer, int length) throws IOException {
+        if (length < 0x80) {
+            buffer.write(0xff & length);
+        } else {
+            int bytesInLengthField = (Integer.toString(length, 16).length() + 1) / 2 + 1;
+            buffer.write((byte)(0b10000000 | (0xff & (bytesInLengthField-1))));
+            for (int i = 0; i < bytesInLengthField - 1; i++) {
+                buffer.write((byte)(0xff & (length >> (bytesInLengthField-2-i)*8)));
+            }
+        }
     }
 }

@@ -5,9 +5,10 @@ import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
+import io.liquidpki.der.DerContextSpecificValue;
 import io.liquidpki.der.ExamineCertificate;
 import io.liquidpki.der.Oid;
-import io.liquidpki.x501.X501Name;
+import io.liquidpki.common.X501Name;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -62,17 +63,15 @@ public class X509Certificate {
         return this;
     }
 
-    public X509Certificate signWithKey(PrivateKey privateKey) throws GeneralSecurityException {
+    public X509Certificate signWithKey(PrivateKey privateKey) throws GeneralSecurityException, IOException {
         signatureAlgorithm(privateKey);
-        /*
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         tbsCertificate.toDer().write(buffer);
-        Signature signature = Signature.getInstance(privateKey.getAlgorithm());
+        Signature signature = Signature.getInstance("SHA256withRSA");
         signature.initSign(privateKey);
         signature.update(buffer.toByteArray(), 0, buffer.toByteArray().length);
         byte[] sign = signature.sign();
         signatureValue = new Der.BIT_STRING(sign);
-         */
         return this;
     }
 
@@ -173,7 +172,7 @@ public class X509Certificate {
         }
     }
 
-    private static class CertificateVersion {
+    public static class CertificateVersion {
         private Der der;
         protected final Der.INTEGER version;
 
@@ -191,11 +190,11 @@ public class X509Certificate {
         }
 
         public Der toDer() {
-            return new Der.SEQUENCE(List.of(version));
+            return new DerContextSpecificValue(0x80, List.of(version));
         }
     }
 
-    private static class Validity {
+    public static class Validity {
         protected final Der.UTCTime notBefore;
         protected final Der.UTCTime notAfter;
 
@@ -208,6 +207,14 @@ public class X509Certificate {
         public Validity(ZonedDateTime notBefore, ZonedDateTime notAfter) {
             this.notBefore = new Der.UTCTime(notBefore);
             this.notAfter = new Der.UTCTime(notAfter);
+        }
+
+        public ZonedDateTime getNotBefore() {
+            return notBefore.getDateTime();
+        }
+
+        public ZonedDateTime getNotAfter() {
+            return notAfter.getDateTime();
         }
 
         public void dump(PrintStream out, String fieldName, String indent) {

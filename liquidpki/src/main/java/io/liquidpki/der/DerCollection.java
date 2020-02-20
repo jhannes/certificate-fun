@@ -1,5 +1,7 @@
 package io.liquidpki.der;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -9,20 +11,22 @@ public class DerCollection implements Der {
     private final int tag;
     private DerValue derValue;
     protected List<Der> children = new ArrayList<>();
+    private int valueLength;
 
     public DerCollection(DerValue derValue) {
         this.tag = derValue.getTag();
+        this.valueLength = derValue.valueLength();
         this.derValue = derValue;
         int offset = 1 + derValue.getBytesForLength();
         while (offset < derValue.fullLength()) {
-            Der child = Der.parse(derValue.atOffset(offset));
+            this.children.add(Der.parse(derValue.atOffset(offset)));
             offset += derValue.atOffset(offset).fullLength();
-            this.children.add(child);
         }
     }
 
     public DerCollection(int tag, List<Der> children) {
         this.tag = tag;
+        this.valueLength = children.stream().mapToInt(Der::fullLength).sum();
         this.children = children;
     }
 
@@ -35,15 +39,18 @@ public class DerCollection implements Der {
 
     @Override
     public int fullLength() {
-        int payloadLength = children.stream().mapToInt(Der::fullLength).sum();
+        return 1 + getBytesForLength() + valueLength;
+    }
+
+    public int getBytesForLength() {
         int bytesForLength;
-        if (payloadLength < 0x80) {
+        if (valueLength < 0x80) {
             bytesForLength = 1;
         } else {
-            int bitsNeededForNumber = Integer.toBinaryString(payloadLength).length();
+            int bitsNeededForNumber = Integer.toBinaryString(valueLength).length();
             bytesForLength = bitsNeededForNumber/8 + 1;
         }
-        return 1 + bytesForLength + payloadLength;
+        return bytesForLength;
     }
 
     @Override
@@ -68,18 +75,28 @@ public class DerCollection implements Der {
         if (derValue != null) {
             return getClass().getSimpleName() + "{" +
                     "tag=" + describeTag() +
+                    ", length=" + (1+getBytesForLength()) + "+" + valueLength +
                     ", children.size=" + children.size() +
                     ", derValue=" + derValue +
                     '}';
         }
         return getClass().getSimpleName() + "{" +
                 "tag=" + describeTag() +
+                ", length=" + (1+getBytesForLength()) + "+" + valueLength +
                 ", children.size=" + children.size() +
-                ", fullLength=" + fullLength() +
                 '}';
     }
 
     protected String describeTag() {
         return "[0x" + Integer.toString(getTag(), 16) + "]";
+    }
+
+    @Override
+    public void write(OutputStream output) throws IOException {
+        output.write(getTag());
+        Der.writeLength(output, valueLength);
+        for (Der child : children) {
+            child.write(output);
+        }
     }
 }

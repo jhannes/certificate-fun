@@ -1,4 +1,4 @@
-package io.liquidpki.x501;
+package io.liquidpki.common;
 
 import io.liquidpki.der.Der;
 
@@ -37,13 +37,33 @@ public class X501Name {
     public X501Name o(String organization) {
         return attribute("2.5.4.10", organization);
     }
+
+    public String cn() {
+        return attribute("2.5.4.3");
+    }
+
+    public String o() {
+        return attribute("2.5.4.10");
+    }
+
+    public String attribute(String oid) {
+        return rdnSequence.stream()
+                .filter(a -> a.type.getObjectIdentifier().equals(oid))
+                .findFirst()
+                .map(a -> a.value.stringValue())
+                .orElse(null);
+    }
+
+
     private X501Name attribute(String oid, String value) {
         rdnSequence.add(new AttributeTypeAndValue(oid, value));
         return this;
     }
 
     public Der toDer() {
-        List<Der> contents = rdnSequence.stream().map(AttributeTypeAndValue::toDer).collect(Collectors.toList());
+        List<Der> contents = rdnSequence.stream()
+                .map(attributeTypeAndValue -> new Der.SET(List.of(attributeTypeAndValue.toDer())))
+                .collect(Collectors.toList());
         return new Der.SEQUENCE(contents);
     }
 

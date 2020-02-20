@@ -1,7 +1,7 @@
 package io.liquidpki.ca;
 
 import io.liquidpki.common.Extension;
-import io.liquidpki.x501.X501Name;
+import io.liquidpki.common.X501Name;
 import io.liquidpki.x509.X509Certificate;
 
 import java.io.IOException;

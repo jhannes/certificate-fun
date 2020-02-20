@@ -6,7 +6,7 @@ import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
 import io.liquidpki.der.ExamineCertificate;
-import io.liquidpki.x501.X501Name;
+import io.liquidpki.common.X501Name;
 
 import java.io.IOException;
 import java.io.PrintStream;

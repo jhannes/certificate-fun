@@ -1,6 +1,7 @@
 package io.liquidpki.common;
 
 import io.liquidpki.der.Der;
+import io.liquidpki.der.Oid;
 
 import java.io.PrintStream;
 import java.security.PublicKey;
@@ -20,7 +21,7 @@ public class SubjectPublicKeyInfo {
     }
 
     public SubjectPublicKeyInfo(PublicKey publicKey) {
-        algorithm = new Der.OBJECT_IDENTIFIER(publicKey.getAlgorithm());
+        algorithm = new Der.OBJECT_IDENTIFIER(Oid.getSignatureAlgorithm(publicKey.getAlgorithm()));
         subjectPublicKey = new Der.BIT_STRING(publicKey.getEncoded());
     }
 

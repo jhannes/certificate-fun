@@ -1,5 +1,8 @@
 package io.liquidpki.der;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 
 public class DerValue implements Der {
@@ -18,18 +21,16 @@ public class DerValue implements Der {
 
     public DerValue(int tag, byte[] bytes) {
         this.offset = 0;
-        int bytesOfLength = 1;
-        this.bytes = new byte[1 + bytesOfLength + bytes.length];
-        this.bytes[0] = (byte)(0xff & tag);
-        this.bytes[1] = (byte)(0xff & bytes.length);
-        System.arraycopy(bytes, 0, this.bytes, 1 + bytesOfLength, bytes.length);
-    }
-
-    public byte[] getEncoded() {
-        if (offset == 0 && fullLength() == bytes.length) return bytes;
-        byte[] encoded = new byte[fullLength()];
-        System.arraycopy(bytes, 0, encoded, 0, encoded.length);
-        return encoded;
+        try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            buffer.write(0xff & tag);
+            Der.writeLength(buffer, bytes.length);
+            for (byte b : bytes) {
+                buffer.write(b);
+            }
+            this.bytes = buffer.toByteArray();
+        } catch (IOException cannotHappen) {
+            throw new RuntimeException(cannotHappen);
+        }
     }
 
     /** Returns the binary value at pos within the whole buffer of the io.liquidpki.der.DerValue as unsigned [0-255] */
@@ -143,5 +144,10 @@ public class DerValue implements Der {
 
     public DerValue atOffset(int offset) {
         return new DerValue(bytes, this.offset + offset);
+    }
+
+    @Override
+    public void write(OutputStream output) throws IOException {
+        output.write(bytes);
     }
 }
