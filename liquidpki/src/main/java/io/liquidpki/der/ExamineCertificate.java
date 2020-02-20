@@ -33,7 +33,6 @@ public class ExamineCertificate {
     private void run() throws IOException {
         for (byte[] derBytes : readPemObjects(name)) {
             Der value = Der.parse(derBytes);
-            System.out.println(value.toHexBytes());
             value.output(System.out, "");
         }
     }

@@ -16,6 +16,22 @@ public class DerValue implements Der {
         this.offset = derValue.offset;
     }
 
+    public DerValue(int tag, byte[] bytes) {
+        this.offset = 0;
+        int bytesOfLength = 1;
+        this.bytes = new byte[1 + bytesOfLength + bytes.length];
+        this.bytes[0] = (byte)(0xff & tag);
+        this.bytes[1] = (byte)(0xff & bytes.length);
+        System.arraycopy(bytes, 0, this.bytes, 1 + bytesOfLength, bytes.length);
+    }
+
+    public byte[] getEncoded() {
+        if (offset == 0 && fullLength() == bytes.length) return bytes;
+        byte[] encoded = new byte[fullLength()];
+        System.arraycopy(bytes, 0, encoded, 0, encoded.length);
+        return encoded;
+    }
+
     /** Returns the binary value at pos within the whole buffer of the io.liquidpki.der.DerValue as unsigned [0-255] */
     protected int unsignedVal(int pos) {
         if (pos < 0) {
@@ -123,5 +139,9 @@ public class DerValue implements Der {
 
     protected String describeTag() {
         return "[0x" + Integer.toString(getTag(), 16) + "]";
+    }
+
+    public DerValue atOffset(int offset) {
+        return new DerValue(bytes, this.offset + offset);
     }
 }

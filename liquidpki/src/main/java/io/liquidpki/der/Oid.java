@@ -33,4 +33,11 @@ public class Oid {
         logger.warning("Unknown oid " + objectIdentifier);
         return null;
     }
+
+    public static String getSignatureAlgorithm(String algorithm) {
+        if (algorithm.equals("RSA")) {
+            return "1.2.840.113549.1.1.1";
+        }
+        throw new IllegalArgumentException("Unknown algorithm " + algorithm);
+    }
 }

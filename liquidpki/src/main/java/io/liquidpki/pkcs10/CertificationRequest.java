@@ -19,6 +19,7 @@ public class CertificationRequest {
 
     public static void main(String[] args) throws IOException {
         for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-request.csr")) {
+            Der.parse(derBytes).output(System.out, "");
             new CertificationRequest(derBytes).dump(System.out, false);
         }
     }

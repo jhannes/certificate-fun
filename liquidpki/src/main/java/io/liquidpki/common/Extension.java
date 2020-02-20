@@ -5,6 +5,7 @@ import io.liquidpki.der.DerContextSpecificValue;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +39,22 @@ public class Extension {
         extensionType = factory.getOrDefault(extnId.getObjectIdentifier(), UnknownExtensionType::new).apply(extnValue);
     }
 
-    private interface ExtensionType {
+    public Extension(ExtensionType extensionType) {
+        extnId = new Der.OBJECT_IDENTIFIER(extensionType.getOid());
+        critical = null;
+        this.extensionType = extensionType;
+    }
+
+    public Der toDer() {
+        return (critical != null
+                ? new Der.SEQUENCE(List.of(extnId, critical, extnId))
+                : new Der.SEQUENCE(List.of(extnId, extnId)));
+    }
+
+    public interface ExtensionType {
         void dump(PrintStream out, String indent);
+
+        String getOid();
     }
 
     public static class SANExtensionType implements ExtensionType {
@@ -70,6 +85,11 @@ public class Extension {
             generalNames.forEach(der ->
                     out.println(indent + "  " + NAME_TYPE.getOrDefault(der.getTag(), "unknown") + " " + der.stringValue()));
         }
+
+        @Override
+        public String getOid() {
+            return "2.5.29.17";
+        }
     }
 
     public static class KeyUsageExtensionType implements ExtensionType {
@@ -83,18 +103,41 @@ public class Extension {
                 0b00000010, "cRLSign"
         );
 
-        protected final Der.BIT_STRING keyUsage;
+        protected long keyUsage;
 
         public KeyUsageExtensionType(Der.OCTET_STRING der) {
-            this.keyUsage = (Der.BIT_STRING)Der.parse(der.byteArray());
+            this.keyUsage = ((Der.BIT_STRING)Der.parse(der.byteArray())).longValue();
+            BitSet bitSet = BitSet.valueOf(der.byteArray());
+        }
+
+        public KeyUsageExtensionType() {
+            this.keyUsage = 0;
         }
 
         @Override
         public void dump(PrintStream out, String indent) {
             out.println(indent + "Key Usage");
             USAGE_NAME.forEach((k, v) -> {
-                if ((k & keyUsage.longValue()) != 0) out.println(indent + "  " + v);
+                if ((k & keyUsage) != 0) out.println(indent + "  " + v);
             });
+        }
+
+        @Override
+        public String getOid() {
+            return "2.5.29.15";
+        }
+
+        public KeyUsageExtensionType keyCertSign(boolean value) {
+            return setValue(0b00000100, value);
+        }
+
+        private KeyUsageExtensionType setValue(int bitmask, boolean value) {
+            if (value) {
+                this.keyUsage |= bitmask;
+            } else {
+                this.keyUsage &= ~bitmask;
+            }
+            return this;
         }
     }
 
@@ -118,6 +161,11 @@ public class Extension {
             out.println(indent + "KeyUsage: ca=" + ca.boolValue() +
                     (pathLengthConstraint != null ? " pathLengthConstraint=" + pathLengthConstraint.longValue() : ""));
         }
+
+        @Override
+        public String getOid() {
+            return "2.5.29.19";
+        }
     }
 
     public static class UnknownExtensionType implements ExtensionType {
@@ -131,6 +179,11 @@ public class Extension {
         @Override
         public void dump(PrintStream out, String indent) {
             der.output(out, indent);
+        }
+
+        @Override
+        public String getOid() {
+            return null;
         }
     }
 

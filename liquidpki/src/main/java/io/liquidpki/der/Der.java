@@ -3,7 +3,7 @@ package io.liquidpki.der;
 import java.io.PrintStream;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -17,6 +17,7 @@ public interface Der {
             0x02, INTEGER::new,
             0x03, BIT_STRING::new,
             0x04, OCTET_STRING::new,
+            0x05, NULL::new,
             0x06, OBJECT_IDENTIFIER::new,
             0x13, PRINTABLE_STRING::new,
             0x17, UTCTime::new,
@@ -29,7 +30,10 @@ public interface Der {
     }
 
     static Der parse(byte[] derBytes, int offset) {
-        DerValue derValue = new DerValue(derBytes, offset);
+        return parse(new DerValue(derBytes, offset));
+    }
+
+    static Der parse(DerValue derValue) {
         Function<DerValue, Der> factory =  Der.TAG_FACTORY.get(derValue.getTag());
         if (factory != null) return factory.apply(derValue);
         if ((derValue.getTag() & 0b11000000) == 0b10000000) {
@@ -38,12 +42,11 @@ public interface Der {
         return derValue;
     }
 
-    String toHexBytes();
-
     void output(PrintStream out, String indent);
 
     int fullLength();
 
+    int getTag();
 
     class BOOLEAN extends DerValue {
         public BOOLEAN(DerValue derValue) {
@@ -69,6 +72,10 @@ public interface Der {
             super(derValue);
         }
 
+        public INTEGER(long value) {
+            super(0x02, asBytes(value));
+        }
+
         @Override
         protected String printValue() {
             if (valueLength() == 8) {
@@ -80,6 +87,7 @@ public interface Der {
         public long longValue() {
             return bytesToLong(valueOffset(), valueLength());
         }
+
     }
 
     class BIT_STRING extends DerValue {
@@ -87,12 +95,20 @@ public interface Der {
             super(derValue);
         }
 
+        public BIT_STRING(byte[] derValue) {
+            super(0x03, derValue);
+        }
+
+        public BIT_STRING(long value) {
+            this(asBytes(value));
+        }
+
         public long longValue() {
             return bytesToLong(valueOffset(), valueLength());
         }
     }
 
-    class OCTET_STRING extends DerCollection {
+    class OCTET_STRING extends DerValue {
         public OCTET_STRING(DerValue derValue) {
             super(derValue);
         }
@@ -102,9 +118,17 @@ public interface Der {
         }
     }
 
+    class NULL extends DerValue {
+        public NULL(DerValue derValue) { super(derValue); }
+    }
+
     class OBJECT_IDENTIFIER extends DerValue {
         public OBJECT_IDENTIFIER(DerValue derValue) {
             super(derValue);
+        }
+
+        public OBJECT_IDENTIFIER(String type) {
+            super(0x13, type.getBytes()); // TODO!!!!!
         }
 
         @Override
@@ -139,6 +163,10 @@ public interface Der {
             super(derValue);
         }
 
+        public PRINTABLE_STRING(String value) {
+            super(0x13, value.getBytes());
+        }
+
         @Override
         protected String printValue() {
             return "\"" + stringValue() + "\"";
@@ -152,6 +180,10 @@ public interface Der {
     class UTCTime extends DerValue {
         public UTCTime(DerValue derValue) {
             super(derValue);
+        }
+
+        public UTCTime(ZonedDateTime dateTime) {
+            super(0x17, dateTime.format(DateTimeFormatter.ofPattern("yyMMddHHmmssX")).getBytes());
         }
 
         @Override
@@ -171,14 +203,28 @@ public interface Der {
             super(derValue);
         }
 
-        public Iterator<Der> iterator() {
-            return children.iterator();
+        public SEQUENCE(List<Der> children) {
+            super(0x31, children);
         }
+
     }
 
     class SET extends DerCollection {
         public SET(DerValue derValue) {
             super(derValue);
         }
+
+        public SET(byte[] encoded) {
+            super(new DerValue(0x31, encoded));
+        }
+    }
+
+    static byte[] asBytes(long value) {
+        byte[] result = new byte[8];
+        for (int i = 7; i >= 0; i--) {
+            result[i] = (byte)(value & 0xFF);
+            value >>= 8;
+        }
+        return result;
     }
 }

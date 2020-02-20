@@ -3,7 +3,9 @@ package io.liquidpki.common;
 import io.liquidpki.der.Der;
 
 import java.io.PrintStream;
+import java.security.PublicKey;
 import java.util.Iterator;
+import java.util.List;
 
 public class SubjectPublicKeyInfo {
     private Der der;
@@ -17,7 +19,16 @@ public class SubjectPublicKeyInfo {
         this.subjectPublicKey = (Der.BIT_STRING) iterator.next();
     }
 
+    public SubjectPublicKeyInfo(PublicKey publicKey) {
+        algorithm = new Der.OBJECT_IDENTIFIER(publicKey.getAlgorithm());
+        subjectPublicKey = new Der.BIT_STRING(publicKey.getEncoded());
+    }
+
     public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
         out.println(indent + fieldName + "=" + algorithm.getName() + " " + subjectPublicKey.describeValue() + " [length: " + subjectPublicKey.valueLength() + "]" + (debug ? " " + der : ""));
+    }
+
+    public Der toDer() {
+        return new Der.SEQUENCE(List.of(new Der.SEQUENCE(List.of(algorithm)), subjectPublicKey));
     }
 }
