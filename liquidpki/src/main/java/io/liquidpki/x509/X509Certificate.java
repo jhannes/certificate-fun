@@ -1,6 +1,7 @@
 package io.liquidpki.x509;
 
 import io.liquidpki.common.AlgorithmIdentifier;
+import io.liquidpki.common.CertificateExtensions;
 import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.common.X501Name;
@@ -14,10 +15,8 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * As defined by https://tools.ietf.org/html/rfc5280
@@ -94,7 +93,7 @@ public class X509Certificate {
             validity = new Validity(iterator.next());
             subject = new X501Name(iterator.next());
             subjectPublicKeyInfo = new SubjectPublicKeyInfo(iterator.next());
-            extensions = new CertificateExtensions(iterator.next());
+            extensions = new CertificateExtensions((Der.SEQUENCE) ((DerContextSpecificValue)iterator.next()).parse());
         }
 
         public TbsCertificate() {
@@ -117,8 +116,7 @@ public class X509Certificate {
                     validity.toDer(),
                     subject.toDer(),
                     subjectPublicKeyInfo.toDer(),
-                    extensions.toDer()
-            ));
+                    new DerContextSpecificValue(0xA3, extensions.toDer().toByteArray())));
         }
 
         public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
@@ -238,55 +236,6 @@ public class X509Certificate {
 
         public Der toDer() {
             return new Der.SEQUENCE(List.of(notBefore, notAfter));
-        }
-    }
-
-    public static class CertificateExtensions {
-        private Der der;
-        protected List<Extension> extensions = new ArrayList<>();
-
-        public CertificateExtensions(Der der) {
-            this.der = der;
-            Der value = ((DerContextSpecificValue)der).parse();
-            Iterator<Der> iterator = ((Der.SEQUENCE) value).iterator();
-            while (iterator.hasNext()) {
-                extensions.add(new Extension(iterator.next()));
-            }
-        }
-
-        public CertificateExtensions() {
-
-        }
-
-        public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
-            out.println(indent + fieldName + ":" + (debug ? " " + der : ""));
-            extensions.forEach(e -> e.dump(out, indent + "  ", debug));
-        }
-
-        public Der toDer() {
-            List<Der> elements = extensions.stream().map(Extension::toDer).collect(Collectors.toList());
-            return new DerContextSpecificValue(0xA3, new Der.SEQUENCE(elements).toByteArray());
-        }
-
-        public void add(Extension.ExtensionType extension) {
-            this.extensions.add(new Extension(extension));
-        }
-
-        public Extension.SANExtensionType sanExtension() {
-            return extension(Extension.SANExtensionType.class);
-        }
-
-        public Extension.KeyUsageExtensionType keyUsage() {
-            return extension(Extension.KeyUsageExtensionType.class);
-        }
-
-        private <T> T extension(Class<T> extensionType) {
-            //noinspection unchecked
-            return (T) extensions.stream()
-                    .map(Extension::getExtensionType)
-                    .filter(e -> e.getClass() == extensionType)
-                    .findFirst()
-                    .orElse(null);
         }
     }
 
