@@ -4,10 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 
 public class DerValue implements Der {
-    protected final byte[] bytes;
-    protected final int offset;
+    private final byte[] bytes;
+    private final int offset;
 
     public DerValue(byte[] bytes, int offset) {
         if (offset < 0) {
@@ -37,7 +38,7 @@ public class DerValue implements Der {
     }
 
     /** Returns the binary value at pos within the whole buffer of the io.liquidpki.der.DerValue as unsigned [0-255] */
-    protected int unsignedVal(int pos) {
+    protected int unsignedVal(int pos) { // Should be private as implementations should stay away from length calculation!
         if (pos < 0) {
             throw new ArrayIndexOutOfBoundsException(pos + " in < 0");
         }
@@ -74,7 +75,7 @@ public class DerValue implements Der {
         }
     }
 
-    protected long bytesToLong(int offset, int length) {
+    protected long bytesToLong(int offset, int length) { // absolute offset, not relative
         long result = 0;
         for (int i = 0; i < length; i++) {
             result <<= Long.BYTES;
@@ -87,6 +88,10 @@ public class DerValue implements Der {
         byte[] result = new byte[valueLength()];
         System.arraycopy(bytes, valueOffset(), result, 0, result.length);
         return result;
+    }
+
+    protected String stringValue(Charset charset) {
+        return new String(bytes, valueOffset(), valueLength(), charset);
     }
 
     /**

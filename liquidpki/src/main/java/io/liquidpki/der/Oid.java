@@ -3,18 +3,36 @@ package io.liquidpki.der;
 import java.util.Map;
 import java.util.logging.Logger;
 
+// TODO: Load this from a resource file
 public class Oid {
     private static Logger logger = Logger.getLogger(Oid.class.getName());
 
-    private static Map<String, String> x509oidMap = Map.of(
+    private static Map<String, String> microsoftAttributes = Map.of(
+            "1.3.6.1.4.1.311.60.2.1.2", "State or province",
+            "1.3.6.1.4.1.311.60.2.1.3", "Country"
+    );
+
+    private static Map<String, String> x500Attributes = Map.of(
             "2.5.4.3", "commonName",
-            "2.5.4.10", "organizationName",
-            "2.5.4.11", "organizationalUnitName",
+            "2.5.4.5", "serialNumber",
             "2.5.4.6", "countryName",
+            "2.5.4.7", "localityName",
+            "2.5.4.8", "stateOrProvinceName",
+            "2.5.4.10", "organizationName",
+            "2.5.4.15", "businessCategory",
+            "2.5.4.11", "organizationalUnitName"
+    );
+
+    private static Map<String, String> x509oidMap = Map.of(
             "2.5.29.19", "basicConstraints",
             "2.5.29.15", "keyUsage",
             "2.5.29.17", "Subject Alternative Name",
-            "2.5.29.14", "subjectKeyIdentifier");
+            "2.5.29.14", "subjectKeyIdentifier",
+            "2.5.29.31", "CRL Distribution Points",
+            "2.5.29.32", "Certificate Policies",
+            "2.5.29.37", "Extended Key Usage",
+            "2.5.29.35", "certificateExtension"
+    );
 
     private static Map<String, String> rsaOidMap = Map.of(
             "1.2.840.113549.1.1.11", "sha256WithRSAEncryption",
@@ -25,13 +43,24 @@ public class Oid {
 
 
     public static String get(String objectIdentifier) {
-        if (x509oidMap.containsKey(objectIdentifier)) {
+        if (microsoftAttributes.containsKey(objectIdentifier)) {
+            return microsoftAttributes.get(objectIdentifier);
+        } else if (x500Attributes.containsKey(objectIdentifier)) {
+            return x500Attributes.get(objectIdentifier);
+        } else if (x509oidMap.containsKey(objectIdentifier)) {
             return x509oidMap.get(objectIdentifier);
         } else if (rsaOidMap.containsKey(objectIdentifier)) {
             return rsaOidMap.get(objectIdentifier);
         }
         logger.warning("Unknown oid " + objectIdentifier);
         return null;
+    }
+
+    public static String getPublicKeyAlgorithm(String algorithm) {
+        if (algorithm.equals("RSA")) {
+            return "1.2.840.113549.1.1.13";
+        }
+        throw new IllegalArgumentException("Unknown algorithm " + algorithm);
     }
 
     public static String getSignatureAlgorithm(String algorithm) {

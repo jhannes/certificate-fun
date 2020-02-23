@@ -29,8 +29,8 @@ public class AlgorithmIdentifier {
 
     public Der toDer() {
         return (parameters != null
-                ? new Der.SEQUENCE(List.of(algorithm, parameters))
-                : new Der.SEQUENCE(List.of(algorithm)));
+                ? new Der.SEQUENCE(List.of(algorithm, parameters, new Der.NULL()))
+                : new Der.SEQUENCE(List.of(algorithm, new Der.NULL())));
     }
 
     public String getAlgorithmOid() {

@@ -101,8 +101,8 @@ class DerTest {
 
     @Test
     public void shouldSerializeContextSpecificValue() {
-        DerContextSpecificValue der = serializeAndDeserialize(new DerContextSpecificValue(0x83, new Der.INTEGER(32).toByteArray()));
-        assertThat(der.getTag()).isEqualTo(0x83);
+        DerContextSpecificValue der = serializeAndDeserialize(new DerContextSpecificValue(0xA3, new Der.INTEGER(32).toByteArray()));
+        assertThat(der.getTag()).isEqualTo(0xA3);
         assertThat(((Der.INTEGER) der.parse()).longValue()).isEqualTo(32);
     }
 

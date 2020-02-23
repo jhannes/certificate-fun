@@ -178,6 +178,10 @@ public class Extension {
             return setValue(0b00000100, value);
         }
 
+        public KeyUsageExtensionType keyEncipherment(boolean value) {
+            return setValue(0b00100000, value);
+        }
+
         private KeyUsageExtensionType setValue(int bitmask, boolean value) {
             if (value) {
                 this.keyUsage |= bitmask;
@@ -208,7 +212,7 @@ public class Extension {
 
         public BasicConstraintExtensionType(Der.OCTET_STRING der) {
             Iterator<Der> iterator = ((Der.SEQUENCE)Der.parse(der.byteArray())).iterator();
-            ca = (Der.BOOLEAN)iterator.next();
+            ca = iterator.hasNext() ? (Der.BOOLEAN) iterator.next() : null;
             pathLengthConstraint = iterator.hasNext() ? (Der.INTEGER) iterator.next() : null;
         }
 
@@ -219,7 +223,8 @@ public class Extension {
 
         @Override
         public void dump(PrintStream out, String indent) {
-            out.println(indent + "KeyUsage: ca=" + ca.boolValue() +
+            out.println(indent + "KeyUsage: " +
+                    (ca != null ? "ca=" + ca.boolValue() : "") +
                     (pathLengthConstraint != null ? " pathLengthConstraint=" + pathLengthConstraint.longValue() : ""));
         }
 

@@ -77,12 +77,12 @@ public class X501Name {
 
     public static class AttributeTypeAndValue {
         protected final Der.OBJECT_IDENTIFIER type;
-        protected final Der.PRINTABLE_STRING value;
+        protected final Der.DerString value;
 
         public AttributeTypeAndValue(Der der) {
             Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
             type = (Der.OBJECT_IDENTIFIER)iterator.next();
-            value = (Der.PRINTABLE_STRING)iterator.next(); // inexact - can be Telex, Universal, UTF8, BMP
+            value = (Der.DerString)iterator.next(); // inexact - can be Telex, Universal, UTF8, BMP
         }
 
         public AttributeTypeAndValue(String type, String value) {

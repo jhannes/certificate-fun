@@ -1,5 +1,7 @@
 package io.liquidpki.der;
 
+import java.nio.charset.Charset;
+
 public class DerContextSpecificValue extends DerValue {
 
     public DerContextSpecificValue(DerValue derValue) {
@@ -11,7 +13,7 @@ public class DerContextSpecificValue extends DerValue {
     }
 
     public String stringValue() {
-        return new String(bytes, valueOffset(), valueLength());
+        return stringValue(Charset.defaultCharset());
     }
 
     public Der parse() {

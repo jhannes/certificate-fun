@@ -5,16 +5,14 @@ import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.common.X501Name;
 import io.liquidpki.der.Der;
-import io.liquidpki.der.DerCollection;
 import io.liquidpki.der.DerContextSpecificValue;
 import io.liquidpki.der.Oid;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.Signature;
+import java.security.interfaces.RSAPublicKey;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -66,8 +64,8 @@ public class X509Certificate {
     }
 
     public X509Certificate signatureAlgorithm(PrivateKey privateKey) {
-        this.signatureAlgorithm = new AlgorithmIdentifier(Oid.getSignatureAlgorithm(privateKey.getAlgorithm()));
-        tbsCertificate.signature(Oid.getSignatureAlgorithm(privateKey.getAlgorithm()));
+        this.signatureAlgorithm = new AlgorithmIdentifier(Oid.getPublicKeyAlgorithm(privateKey.getAlgorithm()));
+        tbsCertificate.signature(Oid.getPublicKeyAlgorithm(privateKey.getAlgorithm()));
         return this;
     }
 
@@ -144,6 +142,11 @@ public class X509Certificate {
             return (int)this.version.version.longValue();
         }
 
+        public TbsCertificate serialNumber(long serialNumber) {
+            this.serialNumber = new Der.INTEGER(serialNumber);
+            return this;
+        }
+
         public TbsCertificate signature(String signatureAlgorithm) {
             this.signature = new AlgorithmIdentifier(signatureAlgorithm);
             return this;
@@ -164,9 +167,13 @@ public class X509Certificate {
             return this;
         }
 
-        public TbsCertificate publicKey(PublicKey publicKey) {
+        public TbsCertificate publicKey(RSAPublicKey publicKey) {
             this.subjectPublicKeyInfo = new SubjectPublicKeyInfo(publicKey);
             return this;
+        }
+
+        public RSAPublicKey publicKey() throws GeneralSecurityException {
+            return subjectPublicKeyInfo.getPublicKey();
         }
 
         public TbsCertificate addExtension(Extension.ExtensionType extension) {
@@ -198,7 +205,7 @@ public class X509Certificate {
         }
 
         public Der toDer() {
-            return new DerContextSpecificValue(0x80, version.toByteArray());
+            return new DerContextSpecificValue(0xA0, version.toByteArray());
         }
     }
 
@@ -240,7 +247,8 @@ public class X509Certificate {
 
         public CertificateExtensions(Der der) {
             this.der = der;
-            Iterator<Der> iterator = ((Der.SEQUENCE) ((DerCollection) der).first()).iterator();
+            Der value = ((DerContextSpecificValue)der).parse();
+            Iterator<Der> iterator = ((Der.SEQUENCE) value).iterator();
             while (iterator.hasNext()) {
                 extensions.add(new Extension(iterator.next()));
             }
@@ -257,7 +265,7 @@ public class X509Certificate {
 
         public Der toDer() {
             List<Der> elements = extensions.stream().map(Extension::toDer).collect(Collectors.toList());
-            return new Der.SET(List.of(new Der.SEQUENCE(elements)));
+            return new DerContextSpecificValue(0xA3, new Der.SEQUENCE(elements).toByteArray());
         }
 
         public void add(Extension.ExtensionType extension) {

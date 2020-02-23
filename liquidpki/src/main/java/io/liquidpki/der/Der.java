@@ -4,6 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -15,18 +18,23 @@ import java.util.function.Function;
  */
 public interface Der {
 
-    Map<Integer, Function<DerValue, Der>> TAG_FACTORY = Map.of(
-            0x01, BOOLEAN::new,
-            0x02, INTEGER::new,
-            0x03, BIT_STRING::new,
-            0x04, OCTET_STRING::new,
-            0x05, NULL::new,
-            0x06, OBJECT_IDENTIFIER::new,
-            0x13, PRINTABLE_STRING::new,
-            0x17, UTCTime::new,
-            0x30, SEQUENCE::new,
-            0x31, SET::new
-    );
+    Map<Integer, Function<DerValue, Der>> TAG_FACTORY = tagMap();
+
+    static Map<Integer, Function<DerValue, Der>> tagMap() {
+        Map<Integer, Function<DerValue, Der>> tagMap = new java.util.HashMap<>();
+        tagMap.put(0x01, BOOLEAN::new);
+        tagMap.put(0x02, INTEGER::new);
+        tagMap.put(0x03, BIT_STRING::new);
+        tagMap.put(0x04, OCTET_STRING::new);
+        tagMap.put(0x05, NULL::new);
+        tagMap.put(0x06, OBJECT_IDENTIFIER::new);
+        tagMap.put(0x0C, UFT8_STRING::new);
+        tagMap.put(0x13, PRINTABLE_STRING::new);
+        tagMap.put(0x17, UTCTime::new);
+        tagMap.put(0x30, SEQUENCE::new);
+        tagMap.put(0x31, SET::new);
+        return tagMap;
+    }
 
     static Der parse(byte[] derBytes) {
         return parse(derBytes, 0);
@@ -95,6 +103,10 @@ public interface Der {
             super(0x02, asBytes(value));
         }
 
+        public INTEGER(BigInteger value) {
+            super(0x02, value.toByteArray());
+        }
+
         @Override
         protected String printValue() {
             if (valueLength() == 8) {
@@ -107,6 +119,9 @@ public interface Der {
             return bytesToLong(valueOffset(), valueLength());
         }
 
+        public BigInteger toBigInteger() {
+            return new BigInteger(byteArray());
+        }
     }
 
     class BIT_STRING extends DerValue {
@@ -114,12 +129,23 @@ public interface Der {
             super(derValue);
         }
 
+        public BIT_STRING(byte[] value, int unusedBytes) {
+            super(0x3, join(unusedBytes, value));
+        }
+
+        private static byte[] join(int unusedBytes, byte[] value) {
+            byte[] bytes = new byte[value.length + 1];
+            bytes[0] = (byte) (0xff & unusedBytes);
+            System.arraycopy(value, 0, bytes, 1, value.length);
+            return bytes;
+        }
+
         public BIT_STRING(byte[] bytes) {
-            super(0x03, bytes);
+            this(bytes, 0);
         }
 
         public BIT_STRING(long value) {
-            this(asBytes(value));
+            this(asBytes(value), 0);
         }
 
         public long longValue() {
@@ -128,6 +154,10 @@ public interface Der {
 
         public byte[] byteArray() {
             return super.byteArray();
+        }
+
+        public Der parse() {
+            return Der.parse(atOffset(1 + getBytesForLength() + 1));
         }
     }
 
@@ -206,13 +236,13 @@ public interface Der {
         }
     }
 
-    class PRINTABLE_STRING extends DerValue {
-        public PRINTABLE_STRING(DerValue derValue) {
+    abstract class DerString extends DerValue {
+        protected DerString(DerValue derValue) {
             super(derValue);
         }
 
-        public PRINTABLE_STRING(String value) {
-            super(0x13, value.getBytes());
+        protected DerString(int tag, String value) {
+            super(tag, value.getBytes());
         }
 
         @Override
@@ -221,9 +251,37 @@ public interface Der {
         }
 
         public String stringValue() {
-            return new String(bytes, valueOffset(), valueLength());
+            return stringValue(Charset.defaultCharset());
         }
     }
+
+    class UFT8_STRING extends DerString {
+
+        public UFT8_STRING(DerValue derValue) {
+            super(derValue);
+        }
+
+        public UFT8_STRING(String value) {
+            super(0xc, value);
+        }
+
+        @Override
+        public String stringValue() {
+            return super.stringValue(StandardCharsets.UTF_8);
+        }
+    }
+
+    class PRINTABLE_STRING extends DerString {
+
+        public PRINTABLE_STRING(DerValue derValue) {
+            super(derValue);
+        }
+
+        public PRINTABLE_STRING(String value) {
+            super(0x13, value);
+        }
+    }
+
 
     class UTCTime extends DerValue {
         public UTCTime(DerValue derValue) {
@@ -240,7 +298,7 @@ public interface Der {
         }
 
         public ZonedDateTime getDateTime() {
-            String value = new String(bytes, valueOffset(), valueLength());
+            String value = stringValue(Charset.defaultCharset());
             String century = value.charAt(0) < '5' ? "20" : "19";
             return ZonedDateTime.parse(century + value, DateTimeFormatter.ofPattern("yyyyMMddHHmmssX"));
         }

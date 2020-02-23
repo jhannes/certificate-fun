@@ -6,13 +6,16 @@ import io.liquidpki.der.Der;
 import io.liquidpki.der.Oid;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -35,7 +38,7 @@ class CertificateTest {
     }
 
     @Test
-    void shouldSerializedUnsignedCertificate() throws NoSuchAlgorithmException {
+    void shouldSerializedUnsignedCertificate() throws GeneralSecurityException {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         X509Certificate.TbsCertificate certificate = new X509Certificate.TbsCertificate()
                 .version(2)
@@ -43,7 +46,7 @@ class CertificateTest {
                 .issuerName(new X501Name().cn("Issuer name").ou("Organization Unit"))
                 .subjectName(new X501Name().cn("Subject name").ou("Organization Unit"))
                 .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
-                .publicKey(keyPair.getPublic())
+                .publicKey((RSAPublicKey) keyPair.getPublic())
                 .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true))
                 .addExtension(new Extension.SANExtensionType().dnsName("www.example.com").ipAddress("127.0.0.1"));
 
@@ -55,6 +58,9 @@ class CertificateTest {
         assertThat(restored.extensions().sanExtension().dnsName()).isEqualTo("www.example.com");
         assertThat(restored.extensions().keyUsage().keyCertSign()).isEqualTo(true);
         assertThat(restored.extensions().keyUsage().keyEncipherment()).isEqualTo(false);
+
+        RSAPublicKey publicKey = restored.publicKey();
+        assertThat(publicKey).isEqualTo(keyPair.getPublic());
     }
 
     @Test
@@ -62,12 +68,14 @@ class CertificateTest {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         X509Certificate certificate = new X509Certificate()
                 .tbsCertificate(new X509Certificate.TbsCertificate()
-                        .version(1)
+                        .version(2)
+                        .serialNumber(6062104602511039190L)
                         .issuerName(new X501Name().cn("Common Name").o("Test Organization"))
                         .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
                         .subjectName(new X501Name().cn("www.example.com").o("Test Org"))
-                        .publicKey(keyPair.getPublic())
-                        .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true)))
+                        .publicKey((RSAPublicKey) keyPair.getPublic())
+                        .addExtension(new Extension.SANExtensionType().dnsName("www.example.com"))
+                        .addExtension(new Extension.KeyUsageExtensionType().keyEncipherment(true)))
                 .signatureAlgorithm(keyPair.getPrivate())
                 .signWithKey(keyPair.getPrivate());
 
@@ -119,8 +127,53 @@ class CertificateTest {
         assertThat(clone.o()).isEqualTo("My Organization");
     }
 
+    @Test
+    void shouldReadCertificate() throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        getClass().getResourceAsStream("/github-cert.crt").transferTo(buffer);
+        List<byte[]> bytes = readPemObjects(buffer);
+
+        X509Certificate certificate = new X509Certificate(bytes.get(0));
+        certificate.dump(System.out, true);
+        assertThat(certificate.tbsCertificate.subject.o()).isEqualTo("GitHub, Inc.");
+        assertThat(certificate.tbsCertificate.extensions.sanExtension().dnsName()).isEqualTo("github.com");
+    }
+
     private Der serializeAndDeserialize(Der der) {
         return Der.parse(der.toByteArray());
+    }
+
+
+    public static List<byte[]> readPemObjects(ByteArrayOutputStream buffer) {
+        // 🤮🤢
+        List<byte[]> certificatesDer = new ArrayList<>();
+        String content = new String(buffer.toByteArray());
+        StringBuilder currentCertificate = null;
+        for (String line : content.split("\r?\n")) {
+            if (line.matches("-----BEGIN [A-Z ]+-----")) {
+                if (currentCertificate != null) {
+                    System.err.println("No!");
+                }
+                currentCertificate = new StringBuilder();
+            } else if (line.matches("-----END [A-Z ]+-----")) {
+                if (currentCertificate == null) {
+                    System.err.println("No!");
+                } else {
+                    certificatesDer.add(Base64.getDecoder().decode(currentCertificate.toString()));
+                    currentCertificate = null;
+                }
+            } else {
+                if (currentCertificate == null) {
+                    System.err.println("No!");
+                } else {
+                    currentCertificate.append(line);
+                }
+            }
+        }
+        if (currentCertificate != null) {
+            System.err.println("NO!");
+        }
+        return certificatesDer;
     }
 
 }
