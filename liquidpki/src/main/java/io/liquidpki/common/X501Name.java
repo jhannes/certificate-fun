@@ -38,12 +38,20 @@ public class X501Name {
         return attribute("2.5.4.10", organization);
     }
 
+    public X501Name ou(String organizationUnit) {
+        return attribute("2.5.4.11", organizationUnit);
+    }
+
     public String cn() {
         return attribute("2.5.4.3");
     }
 
     public String o() {
         return attribute("2.5.4.10");
+    }
+
+    public String ou() {
+        return attribute("2.5.4.11");
     }
 
     public String attribute(String oid) {

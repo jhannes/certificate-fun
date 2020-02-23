@@ -65,7 +65,7 @@ public class DerCollection implements Der {
         return getClass().getSimpleName() + "{" +
                 "tag=" + describeTag() +
                 ", length=" + (1+getBytesForLength()) + "+" + valueLength +
-                ", start=[0x" + toHex(buffer.toByteArray()) + "...]" +
+                ", start=[0x" + Der.toHex(buffer.toByteArray()) + "...]" +
                 ", children.size=" + children.size() +
                 '}';
     }

@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -127,8 +126,8 @@ class DerTest {
     private <T extends Der> T serializeAndDeserialize(T der) {
         //noinspection unchecked
         T deserialized = (T) Der.parse(der.toByteArray());
-        assertThat(der.toHex(der.toByteArray()))
-                .isEqualTo(der.toHex(deserialized.toByteArray()));
+        assertThat(Der.toHex(der.toByteArray()))
+                .isEqualTo(Der.toHex(deserialized.toByteArray()));
         return deserialized;
     }
 }

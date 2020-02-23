@@ -3,14 +3,12 @@ package io.liquidpki.x509;
 import io.liquidpki.common.AlgorithmIdentifier;
 import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
+import io.liquidpki.common.X501Name;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
 import io.liquidpki.der.DerContextSpecificValue;
-import io.liquidpki.der.ExamineCertificate;
 import io.liquidpki.der.Oid;
-import io.liquidpki.common.X501Name;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.security.GeneralSecurityException;
@@ -27,13 +25,6 @@ import java.util.stream.Collectors;
  * As defined by https://tools.ietf.org/html/rfc5280
  */
 public class X509Certificate {
-
-    public static void main(String[] args) throws IOException {
-        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-certificate.crt")) {
-            Der.parse(derBytes).output(System.out, "");
-            new X509Certificate(derBytes).dump(System.out, true);
-        }
-    }
 
     private Der der;
     protected TbsCertificate tbsCertificate;
@@ -63,13 +54,12 @@ public class X509Certificate {
         return this;
     }
 
-    public X509Certificate signWithKey(PrivateKey privateKey) throws GeneralSecurityException, IOException {
+    public X509Certificate signWithKey(PrivateKey privateKey) throws GeneralSecurityException {
         signatureAlgorithm(privateKey);
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        tbsCertificate.toDer().write(buffer);
+        byte[] bytes = tbsCertificate.toDer().toByteArray();
         Signature signature = Signature.getInstance("SHA256withRSA");
         signature.initSign(privateKey);
-        signature.update(buffer.toByteArray(), 0, buffer.toByteArray().length);
+        signature.update(bytes, 0, bytes.length);
         byte[] sign = signature.sign();
         signatureValue = new Der.BIT_STRING(sign);
         return this;
@@ -120,33 +110,6 @@ public class X509Certificate {
             extensions = null;
         }
 
-        public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
-            out.println(indent + fieldName + ":" + (debug ? " " + der : ""));
-            version.dump(out, "version", indent + "  ", debug);
-            out.println(indent + "  serialNumber=" + serialNumber.longValue());
-            signature.dump(out, "signature", indent + "  ", debug);
-            issuer.dump(out, "issuer", indent + "  ", debug);
-            validity.dump(out, "validity", indent + "  ");
-            subject.dump(out, "subject", indent + "  ", debug);
-            subjectPublicKeyInfo.dump(out, "subjectPublicKeyInfo", indent + "  ", debug);
-            extensions.dump(out, "extensions", indent + "  ", debug);
-        }
-
-        public TbsCertificate subjectName(X501Name subject) {
-            this.subject = subject;
-            return this;
-        }
-
-        public TbsCertificate issuerName(X501Name issuer) {
-            this.issuer = issuer;
-            return this;
-        }
-
-        public TbsCertificate publicKey(PublicKey publicKey) {
-            this.subjectPublicKeyInfo = new SubjectPublicKeyInfo(publicKey);
-            return this;
-        }
-
         public Der toDer() {
             return new Der.SEQUENCE(List.of(
                     version.toDer(),
@@ -160,8 +123,49 @@ public class X509Certificate {
             ));
         }
 
+        public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
+            out.println(indent + fieldName + ":" + (debug ? " " + der : ""));
+            version.dump(out, "version", indent + "  ", debug);
+            out.println(indent + "  serialNumber=" + serialNumber.longValue());
+            signature.dump(out, "signature", indent + "  ", debug);
+            issuer.dump(out, "issuer", indent + "  ", debug);
+            validity.dump(out, "validity", indent + "  ");
+            subject.dump(out, "subject", indent + "  ", debug);
+            subjectPublicKeyInfo.dump(out, "subjectPublicKeyInfo", indent + "  ", debug);
+            extensions.dump(out, "extensions", indent + "  ", debug);
+        }
+
+        public TbsCertificate version(int version) {
+            this.version = new CertificateVersion(version);
+            return this;
+        }
+
+        public int version() {
+            return (int)this.version.version.longValue();
+        }
+
         public TbsCertificate signature(String signatureAlgorithm) {
             this.signature = new AlgorithmIdentifier(signatureAlgorithm);
+            return this;
+        }
+
+        public TbsCertificate issuerName(X501Name issuer) {
+            this.issuer = issuer;
+            return this;
+        }
+
+        public TbsCertificate validity(ZonedDateTime notBefore, ZonedDateTime notAfter) {
+            this.validity = new Validity(notBefore, notAfter);
+            return this;
+        }
+
+        public TbsCertificate subjectName(X501Name subject) {
+            this.subject = subject;
+            return this;
+        }
+
+        public TbsCertificate publicKey(PublicKey publicKey) {
+            this.subjectPublicKeyInfo = new SubjectPublicKeyInfo(publicKey);
             return this;
         }
 
@@ -169,6 +173,10 @@ public class X509Certificate {
             if (extensions == null) extensions = new CertificateExtensions();
             extensions.add(extension);
             return this;
+        }
+
+        public CertificateExtensions extensions() {
+            return extensions;
         }
     }
 
@@ -178,7 +186,7 @@ public class X509Certificate {
 
         public CertificateVersion(Der der) {
             this.der = der;
-            this.version = ((Der.INTEGER) ((DerCollection) der).first());
+            this.version = (Der.INTEGER) ((DerContextSpecificValue) der).parse();
         }
 
         public CertificateVersion(int version) {
@@ -226,7 +234,7 @@ public class X509Certificate {
         }
     }
 
-    private static class CertificateExtensions {
+    public static class CertificateExtensions {
         private Der der;
         protected List<Extension> extensions = new ArrayList<>();
 
@@ -249,11 +257,28 @@ public class X509Certificate {
 
         public Der toDer() {
             List<Der> elements = extensions.stream().map(Extension::toDer).collect(Collectors.toList());
-            return new Der.SET(new Der.SEQUENCE(elements).toByteArray());
+            return new Der.SET(List.of(new Der.SEQUENCE(elements)));
         }
 
         public void add(Extension.ExtensionType extension) {
             this.extensions.add(new Extension(extension));
+        }
+
+        public Extension.SANExtensionType sanExtension() {
+            return extension(Extension.SANExtensionType.class);
+        }
+
+        public Extension.KeyUsageExtensionType keyUsage() {
+            return extension(Extension.KeyUsageExtensionType.class);
+        }
+
+        private <T> T extension(Class<T> extensionType) {
+            //noinspection unchecked
+            return (T) extensions.stream()
+                    .map(Extension::getExtensionType)
+                    .filter(e -> e.getClass() == extensionType)
+                    .findFirst()
+                    .orElse(null);
         }
     }
 

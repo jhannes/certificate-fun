@@ -273,7 +273,7 @@ public interface Der {
 
     char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
-    default String toHex(byte[] bytes) {
+    static String toHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length*2];
         for (int i = 0; i < bytes.length; i++) {
             int v = bytes[i] & 0xFF;

@@ -5,7 +5,6 @@ import io.liquidpki.common.Extension;
 import io.liquidpki.common.SubjectPublicKeyInfo;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.DerCollection;
-import io.liquidpki.der.ExamineCertificate;
 import io.liquidpki.common.X501Name;
 
 import java.io.IOException;
@@ -16,14 +15,6 @@ import java.util.List;
 
 /** https://tools.ietf.org/html/rfc2986 */
 public class CertificationRequest {
-
-    public static void main(String[] args) throws IOException {
-        for (byte[] derBytes : ExamineCertificate.readPemObjects("local-test-request.csr")) {
-            Der.parse(derBytes).output(System.out, "");
-            new CertificationRequest(derBytes).dump(System.out, false);
-        }
-    }
-
 
     private Der der;
     protected final CertificationRequestInfo certificationRequestInfo;

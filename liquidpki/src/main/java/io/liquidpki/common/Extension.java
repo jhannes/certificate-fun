@@ -47,14 +47,20 @@ public class Extension {
 
     public Der toDer() {
         return (critical != null
-                ? new Der.SEQUENCE(List.of(extnId, critical, extnId))
-                : new Der.SEQUENCE(List.of(extnId, extnId)));
+                ? new Der.SEQUENCE(List.of(extnId, critical, extensionType.toDer()))
+                : new Der.SEQUENCE(List.of(extnId, extensionType.toDer())));
+    }
+
+    public ExtensionType getExtensionType() {
+        return extensionType;
     }
 
     public interface ExtensionType {
         void dump(PrintStream out, String indent);
 
         String getOid();
+
+        Der toDer();
     }
 
     public static class SANExtensionType implements ExtensionType {
@@ -79,6 +85,13 @@ public class Extension {
             }
         }
 
+        public SANExtensionType() {}
+
+        @Override
+        public Der toDer() {
+            return new Der.OCTET_STRING(new Der.SEQUENCE(generalNames).toByteArray());
+        }
+
         @Override
         public void dump(PrintStream out, String indent) {
             out.println(indent + "SubjectAlternativeName");
@@ -89,6 +102,35 @@ public class Extension {
         @Override
         public String getOid() {
             return "2.5.29.17";
+        }
+
+        public SANExtensionType dnsName(String dnsName) {
+            return addName(0x82, dnsName);
+        }
+
+        public SANExtensionType ipAddress(String ipAddress) {
+            return addName(0x87, ipAddress);
+        }
+
+        private SANExtensionType addName(int tag, String name) {
+            generalNames.add(new DerContextSpecificValue(tag, name.getBytes()));
+            return this;
+        }
+
+        public String dnsName() {
+            return getName(0x82);
+        }
+
+        public String ipAddress() {
+            return getName(0x87);
+        }
+
+        public String getName(int tag) {
+            return generalNames.stream()
+                    .filter(name -> name.getTag() == tag)
+                    .findFirst()
+                    .map(DerContextSpecificValue::stringValue)
+                    .orElse(null);
         }
     }
 
@@ -108,6 +150,11 @@ public class Extension {
         public KeyUsageExtensionType(Der.OCTET_STRING der) {
             this.keyUsage = ((Der.BIT_STRING)Der.parse(der.byteArray())).longValue();
             BitSet bitSet = BitSet.valueOf(der.byteArray());
+        }
+
+        @Override
+        public Der toDer() {
+            return new Der.OCTET_STRING(new Der.BIT_STRING(keyUsage).toByteArray());
         }
 
         public KeyUsageExtensionType() {
@@ -139,6 +186,19 @@ public class Extension {
             }
             return this;
         }
+
+        public boolean keyCertSign() {
+            return getValue(0b00000100);
+        }
+
+        public boolean keyEncipherment() {
+            return getValue(0b00100000);
+        }
+
+        private boolean getValue(int bitmask) {
+            return (keyUsage & bitmask) != 0;
+        }
+
     }
 
     public static class BasicConstraintExtensionType implements ExtensionType {
@@ -149,11 +209,12 @@ public class Extension {
         public BasicConstraintExtensionType(Der.OCTET_STRING der) {
             Iterator<Der> iterator = ((Der.SEQUENCE)Der.parse(der.byteArray())).iterator();
             ca = (Der.BOOLEAN)iterator.next();
-            if (iterator.hasNext()) {
-                pathLengthConstraint = (Der.INTEGER)iterator.next();
-            } else {
-                pathLengthConstraint = null;
-            }
+            pathLengthConstraint = iterator.hasNext() ? (Der.INTEGER) iterator.next() : null;
+        }
+
+        @Override
+        public Der toDer() {
+            return new Der.OCTET_STRING(new Der.SEQUENCE(List.of(ca, pathLengthConstraint)).toByteArray());
         }
 
         @Override
@@ -174,6 +235,11 @@ public class Extension {
 
         public UnknownExtensionType(Der.OCTET_STRING der) {
             this.der = der;
+        }
+
+        @Override
+        public Der toDer() {
+            return der;
         }
 
         @Override

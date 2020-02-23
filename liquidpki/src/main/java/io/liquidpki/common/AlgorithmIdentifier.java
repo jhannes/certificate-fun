@@ -32,4 +32,8 @@ public class AlgorithmIdentifier {
                 ? new Der.SEQUENCE(List.of(algorithm, parameters))
                 : new Der.SEQUENCE(List.of(algorithm)));
     }
+
+    public String getAlgorithmOid() {
+        return algorithm.getObjectIdentifier();
+    }
 }
