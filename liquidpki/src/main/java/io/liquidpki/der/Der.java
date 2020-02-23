@@ -53,6 +53,16 @@ public interface Der {
 
     int getTag();
 
+    default byte[] toByteArray() {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            write(outputStream);
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Can never happen ", e);
+        }
+    }
+
+
     class BOOLEAN extends DerValue {
         public BOOLEAN(DerValue derValue) {
             super(derValue);
@@ -114,6 +124,10 @@ public interface Der {
 
         public long longValue() {
             return bytesToLong(valueOffset(), valueLength());
+        }
+
+        public byte[] byteArray() {
+            return super.byteArray();
         }
     }
 
@@ -237,7 +251,7 @@ public interface Der {
             super(derValue);
         }
 
-        public SEQUENCE(List<Der> children) {
+        public SEQUENCE(List<? extends Der> children) {
             super(0x30, children);
         }
 
@@ -257,9 +271,23 @@ public interface Der {
         }
     }
 
+    char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
+    default String toHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length*2];
+        for (int i = 0; i < bytes.length; i++) {
+            int v = bytes[i] & 0xFF;
+            hexChars[i * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[i * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+
     static byte[] asBytes(long value) {
-        byte[] result = new byte[8];
-        for (int i = 7; i >= 0; i--) {
+        int bytes = bytesInNumber(value);
+        byte[] result = new byte[bytes];
+        for (int i = bytes-1; i >= 0; i--) {
             result[i] = (byte)(value & 0xFF);
             value >>= 8;
         }
@@ -270,11 +298,15 @@ public interface Der {
         if (length < 0x80) {
             buffer.write(0xff & length);
         } else {
-            int bytesInLengthField = (Integer.toString(length, 16).length() + 1) / 2 + 1;
+            int bytesInLengthField = bytesInNumber(length) + 1;
             buffer.write((byte)(0b10000000 | (0xff & (bytesInLengthField-1))));
             for (int i = 0; i < bytesInLengthField - 1; i++) {
                 buffer.write((byte)(0xff & (length >> (bytesInLengthField-2-i)*8)));
             }
         }
+    }
+
+    static int bytesInNumber(long value) {
+        return (Long.toString(value, 16).length() + 1) / 2;
     }
 }

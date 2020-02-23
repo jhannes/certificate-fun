@@ -10,6 +10,9 @@ public class DerValue implements Der {
     protected final int offset;
 
     public DerValue(byte[] bytes, int offset) {
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset=" + offset);
+        }
         this.bytes = bytes;
         this.offset = offset;
     }
@@ -80,12 +83,6 @@ public class DerValue implements Der {
         return result;
     }
 
-    public String toHexBytes() {
-        char[] hexChars = new char[fullLength()*2];
-        toHex(offset, fullLength(), hexChars, 0);
-        return new String(hexChars);
-    }
-
     protected byte[] byteArray() {
         byte[] result = new byte[valueLength()];
         System.arraycopy(bytes, valueOffset(), result, 0, result.length);
@@ -148,6 +145,6 @@ public class DerValue implements Der {
 
     @Override
     public void write(OutputStream output) throws IOException {
-        output.write(bytes);
+        output.write(bytes, offset, fullLength());
     }
 }

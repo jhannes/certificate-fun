@@ -1,5 +1,6 @@
 package io.liquidpki.der;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -9,14 +10,12 @@ import java.util.List;
 
 public class DerCollection implements Der {
     private final int tag;
-    private DerValue derValue;
     protected List<Der> children = new ArrayList<>();
     private int valueLength;
 
     public DerCollection(DerValue derValue) {
         this.tag = derValue.getTag();
         this.valueLength = derValue.valueLength();
-        this.derValue = derValue;
         int offset = 1 + derValue.getBytesForLength();
         while (offset < derValue.fullLength()) {
             this.children.add(Der.parse(derValue.atOffset(offset)));
@@ -24,10 +23,10 @@ public class DerCollection implements Der {
         }
     }
 
-    public DerCollection(int tag, List<Der> children) {
+    public DerCollection(int tag, List<? extends Der> children) {
         this.tag = tag;
         this.valueLength = children.stream().mapToInt(Der::fullLength).sum();
-        this.children = children;
+        this.children = new ArrayList<>(children);
     }
 
     public void output(PrintStream out, String indent) {
@@ -43,14 +42,7 @@ public class DerCollection implements Der {
     }
 
     public int getBytesForLength() {
-        int bytesForLength;
-        if (valueLength < 0x80) {
-            bytesForLength = 1;
-        } else {
-            int bitsNeededForNumber = Integer.toBinaryString(valueLength).length();
-            bytesForLength = bitsNeededForNumber/8 + 1;
-        }
-        return bytesForLength;
+        return valueLength < 0x80 ? 1 : 1 + Der.bytesInNumber(valueLength);
     }
 
     @Override
@@ -66,23 +58,14 @@ public class DerCollection implements Der {
         return children.iterator();
     }
 
-    public byte[] toByteArray() {
-        return new byte[0];
-    }
-
     @Override
     public String toString() {
-        if (derValue != null) {
-            return getClass().getSimpleName() + "{" +
-                    "tag=" + describeTag() +
-                    ", length=" + (1+getBytesForLength()) + "+" + valueLength +
-                    ", children.size=" + children.size() +
-                    ", derValue=" + derValue +
-                    '}';
-        }
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        writeStart(buffer);
         return getClass().getSimpleName() + "{" +
                 "tag=" + describeTag() +
                 ", length=" + (1+getBytesForLength()) + "+" + valueLength +
+                ", start=[0x" + toHex(buffer.toByteArray()) + "...]" +
                 ", children.size=" + children.size() +
                 '}';
     }
@@ -93,10 +76,18 @@ public class DerCollection implements Der {
 
     @Override
     public void write(OutputStream output) throws IOException {
-        output.write(getTag());
-        Der.writeLength(output, valueLength);
+        writeStart(output);
         for (Der child : children) {
             child.write(output);
+        }
+    }
+
+    public void writeStart(OutputStream output) {
+        try {
+            output.write(getTag());
+            Der.writeLength(output, valueLength);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -190,7 +190,7 @@ public class X509Certificate {
         }
 
         public Der toDer() {
-            return new DerContextSpecificValue(0x80, List.of(version));
+            return new DerContextSpecificValue(0x80, version.toByteArray());
         }
     }
 
