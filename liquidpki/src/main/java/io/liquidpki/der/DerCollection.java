@@ -16,10 +16,11 @@ public class DerCollection implements Der {
     public DerCollection(DerValue derValue) {
         this.tag = derValue.getTag();
         this.valueLength = derValue.valueLength();
-        int offset = 1 + derValue.getBytesForLength();
-        while (offset < derValue.fullLength()) {
-            this.children.add(Der.parse(derValue.atOffset(offset)));
-            offset += derValue.atOffset(offset).fullLength();
+        int offset = 0;
+        while (offset < derValue.valueLength()) {
+            Der child = Der.parse(derValue.atOffset(offset));
+            this.children.add(child);
+            offset += child.fullLength();
         }
     }
 

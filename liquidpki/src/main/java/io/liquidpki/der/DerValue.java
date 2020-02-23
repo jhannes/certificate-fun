@@ -28,37 +28,15 @@ public class DerValue implements Der {
         try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
             buffer.write(0xff & tag);
             Der.writeLength(buffer, bytes.length);
-            for (byte b : bytes) {
-                buffer.write(b);
-            }
+            buffer.write(bytes);
             this.bytes = buffer.toByteArray();
         } catch (IOException cannotHappen) {
             throw new RuntimeException(cannotHappen);
         }
     }
 
-    /** Returns the binary value at pos within the whole buffer of the io.liquidpki.der.DerValue as unsigned [0-255] */
-    protected int unsignedVal(int pos) { // Should be private as implementations should stay away from length calculation!
-        if (pos < 0) {
-            throw new ArrayIndexOutOfBoundsException(pos + " in < 0");
-        }
-        return (0xff & bytes[offset + pos]);
-    }
-
-    protected int getBytesForLength() {
-        return unsignedVal(1) >= 0b10000000 ? unsignedVal(1) + 1 & ~0b10000000 : 1;
-    }
-
-    protected int valueOffset() {
-        return offset + 1 + getBytesForLength();
-    }
-
     public int getTag() {
-        return unsignedVal(0);
-    }
-
-    public int fullLength() {
-        return 1 + getBytesForLength() + valueLength();
+        return unsignedValHeader(0);
     }
 
     public int valueLength() {
@@ -67,19 +45,51 @@ public class DerValue implements Der {
             int length = 0;
             for (int i = 1; i < bytesForLength; i++) {
                 length <<= 8;
-                length |= unsignedVal(1+i);
+                length |= unsignedValHeader(1+i);
             }
             return length;
         } else {
-            return unsignedVal(1);
+            return unsignedValHeader(1);
         }
     }
 
-    protected long bytesToLong(int offset, int length) { // absolute offset, not relative
+    public int fullLength() {
+        return 1 + getBytesForLength() + valueLength();
+    }
+
+    public DerValue atOffset(int offset) {
+        return new DerValue(bytes, valueOffset() + offset);
+    }
+
+    /** Returns the binary value at pos within the value of the io.liquidpki.der.DerValue as unsigned [0-255] */
+    protected int unsignedVal(int pos) {
+        if (pos < 0 || valueLength() <= pos) {
+            throw new ArrayIndexOutOfBoundsException(pos + " not in [0, " + valueLength() + ">");
+        }
+        return (0xff & bytes[valueOffset() + pos]);
+    }
+
+    /** Returns the binary value at pos within the whole buffer of the io.liquidpki.der.DerValue as unsigned [0-255] */
+    private int unsignedValHeader(int pos) { // Should be private as implementations should stay away from length calculation!
+        if (pos < 0) {
+            throw new ArrayIndexOutOfBoundsException(pos + " in < 0");
+        }
+        return (0xff & bytes[offset + pos]);
+    }
+
+    private int getBytesForLength() {
+        return unsignedValHeader(1) >= 0b10000000 ? unsignedValHeader(1) + 1 & ~0b10000000 : 1;
+    }
+
+    private int valueOffset() {
+        return offset + 1 + getBytesForLength();
+    }
+
+    protected long bytesToLong() {
         long result = 0;
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < valueLength(); i++) {
             result <<= Long.BYTES;
-            result |= (bytes[offset + i] & 0xFF);
+            result |= unsignedVal(i);
         }
         return result;
     }
@@ -101,20 +111,22 @@ public class DerValue implements Der {
     public String describeValue() {
         if (valueLength() < 20) {
             char[] hexChars = new char[valueLength() * 2];
-            toHex(valueOffset(), valueLength(), hexChars, 0);
+            toHex(0, valueLength(), hexChars, 0);
             return new String(hexChars);
         } else {
             char[] hexChars = new char[10 * 2 + 4 + 5 * 2];
-            toHex(valueOffset(), 10, hexChars, 0);
+            toHex(0, 10, hexChars, 0);
             hexChars[20] = hexChars[21] = hexChars[22] = hexChars[23] = '.';
-            toHex(valueOffset() + valueLength() -5, 5, hexChars, 24);
+            toHex(valueLength() -5, 5, hexChars, 24);
             return new String(hexChars);
         }
     }
 
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
     protected void toHex(int offset, int length, char[] hexChars, int outputOffset) {
         for (int i = 0; i < length; i++) {
-            int v = bytes[offset + i] & 0xFF;
+            int v = unsignedVal(offset + i);
             hexChars[outputOffset + i * 2] = HEX_ARRAY[v >>> 4];
             hexChars[outputOffset + i * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
@@ -123,8 +135,6 @@ public class DerValue implements Der {
     public void output(PrintStream out, String indent) {
         out.println(indent + this);
     }
-
-    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     @Override
     public String toString() {
@@ -142,10 +152,6 @@ public class DerValue implements Der {
 
     protected String describeTag() {
         return "[0x" + Integer.toString(getTag(), 16) + "]";
-    }
-
-    public DerValue atOffset(int offset) {
-        return new DerValue(bytes, this.offset + offset);
     }
 
     @Override

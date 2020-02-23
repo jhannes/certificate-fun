@@ -17,6 +17,6 @@ public class DerContextSpecificValue extends DerValue {
     }
 
     public Der parse() {
-        return Der.parse(atOffset(1 + getBytesForLength()));
+        return Der.parse(atOffset(0));
     }
 }

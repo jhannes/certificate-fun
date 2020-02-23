@@ -62,9 +62,9 @@ public interface Der {
     int getTag();
 
     default byte[] toByteArray() {
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            write(outputStream);
-            return outputStream.toByteArray();
+        try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            write(buffer);
+            return buffer.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException("Can never happen ", e);
         }
@@ -82,14 +82,14 @@ public interface Der {
 
         @Override
         protected String printValue() {
-            int b = unsignedVal(1 + getBytesForLength());
+            int b = unsignedVal(0);
             if (b == 0) return "false";
             if (b == 0xff) return "true";
             return "0x" + Integer.toString(b, 16);
         }
 
         public boolean boolValue() {
-            return unsignedVal(1 + getBytesForLength()) != 0;
+            return unsignedVal(0) != 0;
         }
 
     }
@@ -116,7 +116,7 @@ public interface Der {
         }
 
         public long longValue() {
-            return bytesToLong(valueOffset(), valueLength());
+            return bytesToLong();
         }
 
         public BigInteger toBigInteger() {
@@ -149,7 +149,7 @@ public interface Der {
         }
 
         public long longValue() {
-            return bytesToLong(valueOffset(), valueLength());
+            return bytesToLong();
         }
 
         public byte[] byteArray() {
@@ -157,7 +157,7 @@ public interface Der {
         }
 
         public Der parse() {
-            return Der.parse(atOffset(1 + getBytesForLength() + 1));
+            return Der.parse(atOffset(1));
         }
     }
 
@@ -220,14 +220,14 @@ public interface Der {
         }
 
         public String getObjectIdentifier() {
-            int firstTwoNodes = unsignedVal(1 + getBytesForLength());
+            int firstTwoNodes = unsignedVal(0);
             StringBuilder value = new StringBuilder(firstTwoNodes / 40 + "." + firstTwoNodes % 40);
-            int i = 1;
-            while (i< valueLength()) {
+            int pos = 1;
+            while (pos< valueLength()) {
                 int node = 0;
                 int octet;
                 do {
-                    octet = unsignedVal(1 + getBytesForLength() + i++);
+                    octet = unsignedVal(pos++);
                     node = node << 7 | (octet & ~0x80);
                 } while (octet >= 0x80);
                 value.append(".").append(node);
