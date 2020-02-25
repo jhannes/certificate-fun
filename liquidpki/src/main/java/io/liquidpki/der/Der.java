@@ -152,8 +152,8 @@ public interface Der {
             return bytesToLong();
         }
 
-        public byte[] byteArray() {
-            return super.byteArray();
+        public byte[] bytesValue() {
+            return super.byteArray(1);
         }
 
         public Der parse() {

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -72,23 +73,37 @@ class CertificateTest {
                         .serialNumber(6062104602511039190L)
                         .issuerName(new X501Name().cn("Common Name").o("Test Organization"))
                         .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
-                        .subjectName(new X501Name().cn("www.example.com").o("Test Org"))
+                        .subjectName(new X501Name().cn("Common Name").o("Test Organization"))
                         .publicKey((RSAPublicKey) keyPair.getPublic())
                         .addExtension(new Extension.SANExtensionType().dnsName("www.example.com"))
                         .addExtension(new Extension.KeyUsageExtensionType().keyEncipherment(true)))
                 .signatureAlgorithm(keyPair.getPrivate())
-                .signWithKey(keyPair.getPrivate());
+                .signWithKey(keyPair.getPrivate(), "SHA256withRSA");
 
-        System.out.println(Base64.getEncoder().encodeToString(certificate.toDer().toByteArray()));
         Der der = serializeAndDeserialize(certificate.toDer());
 
         X509Certificate clone = new X509Certificate(der);
         assertThat(clone.tbsCertificate.issuer.cn()).isEqualTo(certificate.tbsCertificate.issuer.cn());
         assertThat(clone.tbsCertificate.signature.getAlgorithmOid()).isEqualTo(certificate.tbsCertificate.signature.getAlgorithmOid());
-        assertThat(clone.signatureValue.byteArray()).isEqualTo(certificate.signatureValue.byteArray());
+        assertThat(clone.signatureValue.bytesValue()).isEqualTo(certificate.signatureValue.bytesValue());
     }
 
+    @Test
+    void shouldVerifyCertificateSignature() throws GeneralSecurityException {
+        KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        X509Certificate certificate = new X509Certificate()
+                .tbsCertificate(new X509Certificate.TbsCertificate()
+                        .issuerName(new X501Name().cn("Common Name").o("Test Organization"))
+                        .subjectName(new X501Name().cn("www.example.com").o("Test Org"))
+                        .publicKey((RSAPublicKey) keyPair.getPublic()))
+                .signatureAlgorithm(keyPair.getPrivate())
+                .signWithKey(keyPair.getPrivate(), "SHA512withRSA");
 
+        Signature signature = Signature.getInstance("SHA512withRSA");
+        signature.initVerify(certificate.tbsCertificate.publicKey());
+        signature.update(certificate.tbsCertificate.toDer().toByteArray());
+        assertThat(signature.verify(certificate.signatureValue.bytesValue())).isTrue();
+    }
 
     @Test
     void shouldSerializeValidity() {

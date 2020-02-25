@@ -9,6 +9,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 
@@ -34,6 +35,22 @@ class CertificationRequestTest {
         assertThat(restored.certificationRequestInfo.subject().cn()).isEqualTo("www.example.net");
     }
 
+    @Test
+    void shouldVerifyCertificationRequestSignature() throws GeneralSecurityException {
+        KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        CertificationRequest request = new CertificationRequest()
+                .info(new CertificationRequest.CertificationRequestInfo()
+                        .subject(new X501Name().cn("www.example.net").o("Example Company Inc"))
+                        .addExtension(new Extension.SANExtensionType().dnsName("www.example.net"))
+                        .publicKey(publicKey))
+                .signWithKey(keyPair.getPrivate());
+
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initVerify(request.certificationRequestInfo.publicKey());
+        signature.update(request.certificationRequestInfo.toDer().toByteArray());
+        assertThat(signature.verify(request.signature.bytesValue())).isTrue();
+    }
 
     @Test
     void shouldSerializeCertificationRequestInfo() throws GeneralSecurityException {

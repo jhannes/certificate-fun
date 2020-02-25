@@ -218,7 +218,11 @@ public class Extension {
 
         @Override
         public Der toDer() {
-            return new Der.OCTET_STRING(new Der.SEQUENCE(List.of(ca, pathLengthConstraint)).toByteArray());
+            List<Der> children = new ArrayList<>(List.of(ca));
+            if (pathLengthConstraint != null) {
+                children.add(pathLengthConstraint);
+            }
+            return new Der.OCTET_STRING(new Der.SEQUENCE(children).toByteArray());
         }
 
         @Override

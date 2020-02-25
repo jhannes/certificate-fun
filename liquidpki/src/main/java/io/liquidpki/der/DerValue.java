@@ -94,10 +94,14 @@ public class DerValue implements Der {
         return result;
     }
 
-    protected byte[] byteArray() {
-        byte[] result = new byte[valueLength()];
-        System.arraycopy(bytes, valueOffset(), result, 0, result.length);
+    protected byte[] byteArray(int offset) {
+        byte[] result = new byte[valueLength()-offset];
+        System.arraycopy(bytes, valueOffset() + offset, result, 0, result.length);
         return result;
+    }
+
+    protected byte[] byteArray() {
+        return byteArray(0);
     }
 
     protected String stringValue(Charset charset) {

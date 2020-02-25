@@ -15,6 +15,7 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -51,10 +52,10 @@ public class X509Certificate {
         return this;
     }
 
-    public X509Certificate signWithKey(PrivateKey privateKey) throws GeneralSecurityException {
+    public X509Certificate signWithKey(PrivateKey privateKey, String signatureAlgorithm) throws GeneralSecurityException {
         signatureAlgorithm(privateKey);
         byte[] bytes = tbsCertificate.toDer().toByteArray();
-        Signature signature = Signature.getInstance("SHA256withRSA");
+        Signature signature = Signature.getInstance(signatureAlgorithm);
         signature.initSign(privateKey);
         signature.update(bytes, 0, bytes.length);
         byte[] sign = signature.sign();
@@ -108,15 +109,19 @@ public class X509Certificate {
         }
 
         public Der toDer() {
-            return new Der.SEQUENCE(List.of(
+            List<Der> children = new ArrayList<>(List.of(
                     version.toDer(),
                     serialNumber,
                     signature.toDer(),
                     issuer.toDer(),
                     validity.toDer(),
                     subject.toDer(),
-                    subjectPublicKeyInfo.toDer(),
-                    new DerContextSpecificValue(0xA3, extensions.toDer().toByteArray())));
+                    subjectPublicKeyInfo.toDer())
+            );
+            if (extensions != null) {
+                children.add(new DerContextSpecificValue(0xA3, extensions.toDer().toByteArray()));
+            }
+            return new Der.SEQUENCE(children);
         }
 
         public void dump(PrintStream out, String fieldName, String indent, boolean debug) {

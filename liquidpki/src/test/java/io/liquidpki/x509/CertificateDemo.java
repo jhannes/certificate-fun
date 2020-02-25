@@ -41,7 +41,7 @@ public class CertificateDemo {
                         .publicKey(publicKey)
                         .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true))
                 )
-                .signWithKey((PrivateKey) key);
+                .signWithKey((PrivateKey) key, "SHA256withRSA");
 
         System.out.println(Base64.getEncoder().encodeToString(certificate.toDer().toByteArray()));
     }
