@@ -213,34 +213,34 @@ public class X509Certificate {
     }
 
     public static class Validity {
-        protected final Der.UTCTime notBefore;
-        protected final Der.UTCTime notAfter;
+        protected final ZonedDateTime notBefore;
+        protected final ZonedDateTime notAfter;
 
         public Validity(Der der) {
             Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
-            this.notBefore = (Der.UTCTime)iterator.next(); // Inexact - should be DerTimestamp of either UTCTime or GeneralizedTime
-            this.notAfter = (Der.UTCTime)iterator.next();
+            this.notBefore = ((Der.UTCTime)iterator.next()).getDateTime(); // Inexact - should be DerTimestamp of either UTCTime or GeneralizedTime
+            this.notAfter = ((Der.UTCTime)iterator.next()).getDateTime();
         }
 
         public Validity(ZonedDateTime notBefore, ZonedDateTime notAfter) {
-            this.notBefore = new Der.UTCTime(notBefore);
-            this.notAfter = new Der.UTCTime(notAfter);
+            this.notBefore = notBefore;
+            this.notAfter = notAfter;
         }
 
         public ZonedDateTime getNotBefore() {
-            return notBefore.getDateTime();
+            return notBefore;
         }
 
         public ZonedDateTime getNotAfter() {
-            return notAfter.getDateTime();
+            return notAfter;
         }
 
         public void dump(PrintStream out, String fieldName, String indent) {
-            out.println(indent + fieldName + "=" + notBefore.getDateTime() + " to " + notAfter.getDateTime());
+            out.println(indent + fieldName + "=" + notBefore + " to " + notAfter);
         }
 
         public Der toDer() {
-            return new Der.SEQUENCE(List.of(notBefore, notAfter));
+            return new Der.SEQUENCE(List.of(new Der.UTCTime(notBefore), new Der.UTCTime(notAfter)));
         }
     }
 
