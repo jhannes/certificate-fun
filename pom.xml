@@ -10,6 +10,7 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>liquidpki</module>
+        <module>01-sockets-ca</module>
     </modules>
 
 
