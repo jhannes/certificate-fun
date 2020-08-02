@@ -17,43 +17,34 @@ import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.SecureRandom;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Properties;
 import java.util.Scanner;
 
 public class CaMain {
 
-    private Date validFrom = new Date();
-    private long validityDays = 100;
-    private Scanner scanner = new Scanner(System.in);
-    private Properties properties = new Properties();
-    private String caKeyStore;
-    private char[] caStorePassword;
-    private char[] caKeyPassword;
+    private final SingleKeyStore caStore;
+    private final Date validFrom = new Date();
+    private final long validityDays = 100;
+    private final Scanner scanner = new Scanner(System.in);
+    private final Properties properties = new Properties();
+    private final KeyPairGenerator generator;
 
-    public CaMain(String filename) throws IOException {
+    public CaMain(String filename) throws IOException, GeneralSecurityException {
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        caKeyStore = properties.getProperty("ca.keystore.filename");
-        caStorePassword = properties.getProperty("ca.keystore.password").toCharArray();
-        caKeyPassword = properties.getProperty("ca.key.password").toCharArray();
+        caStore = new SingleKeyStore(properties, "ca");
+        generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
     }
 
     public static void main(String[] args) throws GeneralSecurityException, IOException {
@@ -85,12 +76,7 @@ public class CaMain {
         String commonName = scanner.nextLine().trim();
         String issuer = "O=" + organization + ",CN=" + commonName;
 
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
         KeyPair keyPair = generator.generateKeyPair();
-
-
-        Date validTo = new Date(validFrom.getTime() + validityDays * 86400000L);
 
         CertificateExtensions extensions = new CertificateExtensions();
         KeyUsageExtension keyUsageExtension = new KeyUsageExtension();
@@ -103,21 +89,30 @@ public class CaMain {
         BasicConstraintsExtension basicConstraintsExtension = new BasicConstraintsExtension(isCertificateAuthority, certificationPathDepth);
         extensions.set(BasicConstraintsExtension.NAME, basicConstraintsExtension);
 
-        X509CertInfo certInfo = createX509Info(validTo);
-        certInfo.set(X509CertInfo.SUBJECT, new X500Name(issuer));
-        certInfo.set(X509CertInfo.ISSUER, new X500Name(issuer));
-        certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
-        certInfo.set(X509CertInfo.EXTENSIONS, extensions);
+        X509CertInfo certInfo = createX509CertInfo(issuer, issuer, keyPair, extensions);
 
         X509CertImpl certificateImpl = new X509CertImpl(certInfo);
         certificateImpl.sign(keyPair.getPrivate(), "SHA512withRSA");
 
-        KeyStore keyStore = KeyStore.getInstance("pkcs12");
-        keyStore.load(null, null);
-        keyStore.setKeyEntry("ca", keyPair.getPrivate(), caKeyPassword, new Certificate[] { certificateImpl });
-        try (FileOutputStream stream = new FileOutputStream(caKeyStore)) {
-                keyStore.store(stream, caStorePassword);
-        }
+        caStore.setEntry(keyPair.getPrivate(), certificateImpl);
+        caStore.store();
+    }
+
+    private X509CertInfo createX509CertInfo(String subject, String issuer, KeyPair keyPair, CertificateExtensions extensions) throws CertificateException, IOException {
+        Date validTo = new Date(validFrom.getTime() + validityDays * 86400000L);
+
+        X509CertInfo certInfo = new X509CertInfo();
+        certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
+        certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(validFrom, validTo));
+        certInfo.set(X509CertInfo.SERIAL_NUMBER,
+                new CertificateSerialNumber(new BigInteger(64, new SecureRandom())));
+        certInfo.set(X509CertInfo.ALGORITHM_ID,
+                new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.sha512WithRSAEncryption_oid)));
+        certInfo.set(X509CertInfo.SUBJECT, new X500Name(subject));
+        certInfo.set(X509CertInfo.ISSUER, new X500Name(issuer));
+        certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
+        certInfo.set(X509CertInfo.EXTENSIONS, extensions);
+        return certInfo;
     }
 
     private void createClientCertificateAndKey() throws GeneralSecurityException, IOException {
@@ -127,39 +122,14 @@ public class CaMain {
         String commonName = scanner.nextLine().trim();
         String subject = "O=" + organization + ",CN=" + commonName;
 
-        KeyStore caKeyStore = KeyStore.getInstance("pkcs12");
-        try (FileInputStream stream = new FileInputStream(this.caKeyStore)) {
-            caKeyStore.load(stream, caStorePassword);
-        }
-        X509Certificate caCertificate = (X509Certificate) caKeyStore.getCertificate("ca");
-        PrivateKey caKey = (PrivateKey) caKeyStore.getKey("ca", caKeyPassword);
-
-
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
         KeyPair keyPair = generator.generateKeyPair();
 
-        Date validTo = new Date(validFrom.getTime() + validityDays * 86400000L);
-
-        X509CertInfo certInfo = createX509Info(validTo);
-        certInfo.set(X509CertInfo.SUBJECT, new X500Name(subject));
-        certInfo.set(X509CertInfo.ISSUER, new X500Name(caCertificate.getSubjectDN().getName()));
-        certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
-        certInfo.set(X509CertInfo.EXTENSIONS, new CertificateExtensions());
+        X509CertInfo certInfo = createX509CertInfo(subject, caStore.getSubjectDN(), keyPair, new CertificateExtensions());
 
         X509CertImpl certificateImpl = new X509CertImpl(certInfo);
-        certificateImpl.sign(caKey, "SHA512withRSA");
+        certificateImpl.sign(caStore.getPrivateKey(), "SHA512withRSA");
 
-        writeKeyStore(keyPair, certificateImpl, "client", "client.key.password", "client.keystore.filename", "client.keystore.password");
-    }
-
-    private void writeKeyStore(KeyPair keyPair, X509CertImpl certificateImpl, String client, String s, String s2, String s3) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        KeyStore keyStore = KeyStore.getInstance("pkcs12");
-        keyStore.load(null, null);
-        keyStore.setKeyEntry(client, keyPair.getPrivate(), properties.getProperty(s).toCharArray(), new Certificate[]{certificateImpl});
-        try (FileOutputStream stream = new FileOutputStream(properties.getProperty(s2))) {
-            keyStore.store(stream, properties.getProperty(s3).toCharArray());
-        }
+        writeCertificateToKeystore(keyPair, certificateImpl, "client");
     }
 
     private void createServerCertificateAndKey() throws GeneralSecurityException, IOException {
@@ -169,45 +139,25 @@ public class CaMain {
         String hostname = scanner.nextLine().trim();
         String subject = "O=" + organization + ",CN=" + hostname;
 
-        KeyStore caKeyStore = KeyStore.getInstance("pkcs12");
-        try (FileInputStream stream = new FileInputStream(this.caKeyStore)) {
-            caKeyStore.load(stream, caStorePassword);
-        }
-        X509Certificate caCertificate = (X509Certificate) caKeyStore.getCertificate("ca");
-        PrivateKey caKey = (PrivateKey) caKeyStore.getKey("ca", caKeyPassword);
-
-
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
         KeyPair keyPair = generator.generateKeyPair();
-
-        Date validTo = new Date(validFrom.getTime() + validityDays * 86400000L);
-
-        X509CertInfo certInfo = createX509Info(validTo);
-        certInfo.set(X509CertInfo.SUBJECT, new X500Name(subject));
-        certInfo.set(X509CertInfo.ISSUER, new X500Name(caCertificate.getSubjectDN().getName()));
-        certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
 
         CertificateExtensions extensions = new CertificateExtensions();
         GeneralNames subjectAlternativeNames = new GeneralNames();
         subjectAlternativeNames.add(new GeneralName(new DNSName(hostname)));
         extensions.set(SubjectAlternativeNameExtension.NAME,
                 new SubjectAlternativeNameExtension(subjectAlternativeNames));
-        certInfo.set(X509CertInfo.EXTENSIONS, extensions);
+
+        X509CertInfo certInfo = createX509CertInfo(subject, caStore.getSubjectDN(), keyPair, extensions);
 
         X509CertImpl certificateImpl = new X509CertImpl(certInfo);
-        certificateImpl.sign(caKey, "SHA512withRSA");
+        certificateImpl.sign(caStore.getPrivateKey(), "SHA512withRSA");
 
-        writeKeyStore(keyPair, certificateImpl, "server", "server.key.password", "server.keystore.filename", "server.keystore.password");
+        writeCertificateToKeystore(keyPair, certificateImpl, "server");
     }
 
-    private X509CertInfo createX509Info(Date validTo) throws CertificateException, IOException {
-        X509CertInfo certInfo = new X509CertInfo();
-        certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-        certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(validFrom, validTo));
-        certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(new BigInteger(64, new SecureRandom())));
-        certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(
-                new AlgorithmId(AlgorithmId.sha512WithRSAEncryption_oid)));
-        return certInfo;
+    private void writeCertificateToKeystore(KeyPair keyPair, X509CertImpl certificateImpl, String key) throws GeneralSecurityException, IOException {
+        SingleKeyStore keyStore = new SingleKeyStore(properties, key);
+        keyStore.setEntry(keyPair.getPrivate(), certificateImpl);
+        keyStore.store();
     }
 }

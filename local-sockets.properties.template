@@ -1,0 +1,11 @@
+ca.keystore.filename=ca-key.p12
+ca.keystore.password=
+ca.key.password=
+
+client.keystore.filename=client-key.p12
+client.key.password=
+client.keystore.password=
+
+server.keystore.filename=server-key.p12
+server.key.password=
+server.keystore.password=
