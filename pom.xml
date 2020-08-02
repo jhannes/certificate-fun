@@ -11,6 +11,7 @@
     <modules>
         <module>liquidpki</module>
         <module>01-sockets-ca</module>
+        <module>02-ca-webapp</module>
     </modules>
 
 
