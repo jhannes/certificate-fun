@@ -10,36 +10,43 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
 
 public class ExampleClient {
     private static final Logger logger = LoggerFactory.getLogger(ExampleClient.class);
-    private final Properties properties = new Properties();
-    private SingleKeyStore caKeyStore;
-    private SingleKeyStore clientKeyStore;
+
+    private final SingleKeyStore clientKeyStore;
+    private SSLContext sslContext;
+
+    public ExampleClient(SingleKeyStore clientKeyStore, X509Certificate caCertificate) throws IOException, GeneralSecurityException {
+        this.clientKeyStore = clientKeyStore;
+        sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(clientKeyStore.getKeyManagers(), SingleKeyStore.createTrustManager(caCertificate), null);
+    }
 
     public ExampleClient(String filename) throws IOException, GeneralSecurityException {
+        Properties properties = new Properties();
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        caKeyStore = new SingleKeyStore(properties, "ca");
+        SingleKeyStore caKeyStore = new SingleKeyStore(properties, "ca");
         clientKeyStore = new SingleKeyStore(properties, "client");
+        sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(clientKeyStore.getKeyManagers(), caKeyStore.getTrustManagers(), null);
     }
 
     public static void main(String[] args) throws IOException, GeneralSecurityException {
-        new ExampleClient("local-sockets.properties").start();
+        new ExampleClient("local-sockets.properties").run();
     }
 
-    private void start() throws IOException, GeneralSecurityException {
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(clientKeyStore.getKeyManagers(), caKeyStore.getTrustManagers(), null);
-
+    void run() throws IOException {
         InetSocketAddress serverAddress = InetSocketAddress.createUnresolved("localhost", 30001);
         logger.info("Connecting to {}", serverAddress);
 
         Socket socket = sslContext.getSocketFactory().createSocket(serverAddress.getHostName(), serverAddress.getPort());
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         socket.getInputStream().transferTo(buffer);
-        System.out.println(new String(buffer.toByteArray()));
+        System.out.println(buffer.toString());
     }
 }

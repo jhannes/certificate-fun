@@ -28,6 +28,12 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.28</version>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.6.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -41,6 +47,7 @@
                     <target>11</target>
                     <compilerArgs>
                         <arg>--add-exports=java.base/sun.security.x509=ALL-UNNAMED</arg>
+                        <arg>--add-exports=java.base/sun.security.pkcs10=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/sun.security.util=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/sun.security.provider.certpath=ALL-UNNAMED</arg>
                     </compilerArgs>
