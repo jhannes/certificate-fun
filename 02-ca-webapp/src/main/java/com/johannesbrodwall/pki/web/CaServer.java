@@ -1,11 +1,10 @@
 package com.johannesbrodwall.pki.web;
 
-import com.johannesbrodwall.pki.sockets.SingleKeyStore;
+import com.johannesbrodwall.pki.sockets.KeyStoreFile;
+import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.webapp.WebAppContext;
 
@@ -13,22 +12,19 @@ import javax.net.ssl.SSLContext;
 import java.io.FileReader;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.util.List;
 import java.util.Properties;
 
 public class CaServer {
     private final Server server = new Server();
-    private final WebAppContext context = new WebAppContext(Resource.newClassPathResource("webapp"), "/ca-web");
+    private final WebAppContext context = new CaWebApp("/ca-web");
+
     private final ServerConnector connector = new ServerConnector(server);
-    private final ServerConnector secureConnector = new ServerConnector(server);
-    private final SingleKeyStore keyStore;
+    private ServerConnector secureConnector = new ServerConnector(server);
+    private final KeyStoreFile keyStore;
 
     public CaServer(Properties properties) throws GeneralSecurityException, IOException {
-        keyStore = new SingleKeyStore(properties, "server");
+        keyStore = new KeyStoreFile(properties, "server", null);
     }
 
     public static void main(String[] args) throws Exception {
@@ -37,8 +33,8 @@ public class CaServer {
             properties.load(reader);
         }
 
-        SingleKeyStore caKeyStore = new SingleKeyStore(properties, "ca");
-        caKeyStore.exportCertificate();
+        KeyStoreFile caKeyStore = new KeyStoreFile(properties, "ca", null);
+        caKeyStore.getKeyStore().exportCertificate();
 
         new CaServer(properties).start();
     }
@@ -48,15 +44,15 @@ public class CaServer {
         server.start();
 
         setHttpPort(10080);
-        setHttpsPort(10443, "demo-server.local", createSslContext(keyStore));
+        setHttpsPort(10443, "ca-server.local", keyStore.createSslContext());
     }
 
     private void setHttpsPort(int port, String host, SSLContext sslContext) throws Exception {
         secureConnector.stop();
         secureConnector.setDefaultProtocol(null);
-        secureConnector.setConnectionFactories(List.of(
+        secureConnector.setConnectionFactories(List.of(AbstractConnectionFactory.getFactories(
                 createSslConnectionFactory(sslContext), new HttpConnectionFactory()
-        ));
+        )));
         secureConnector.setHost(host);
         secureConnector.setPort(port);
         secureConnector.start();
@@ -68,15 +64,9 @@ public class CaServer {
         connector.start();
     }
 
-    private SSLContext createSslContext(SingleKeyStore keyStore) throws NoSuchAlgorithmException, KeyManagementException, UnrecoverableKeyException, KeyStoreException {
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(keyStore.getKeyManagers(), null, null);
-        return sslContext;
-    }
-
-    private SslConnectionFactory createSslConnectionFactory(SSLContext sslContext) {
+    private SslContextFactory.Server createSslConnectionFactory(SSLContext sslContext) {
         SslContextFactory.Server sslConnectionFactory = new SslContextFactory.Server();
         sslConnectionFactory.setSslContext(sslContext);
-        return new SslConnectionFactory(sslConnectionFactory, "HTTP/1.1");
+        return sslConnectionFactory;
     }
 }

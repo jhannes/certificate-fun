@@ -6,30 +6,22 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Period;
 import java.util.Properties;
 
 public class ExampleServer {
     private static final Logger logger = LoggerFactory.getLogger(ExampleServer.class);
 
-    private final SingleKeyStore serverKeyStore;
     private final SSLContext sslContext;
 
-    public ExampleServer(SingleKeyStore serverKeyStore, X509Certificate certificate) throws GeneralSecurityException, IOException {
-        this.serverKeyStore = serverKeyStore;
-        sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(serverKeyStore.getKeyManagers(), SingleKeyStore.createTrustManager(certificate), null);
+    public ExampleServer(SingleKeyStore serverKeyStore) throws GeneralSecurityException, IOException {
+        sslContext = serverKeyStore.createSslContext();
     }
 
     public ExampleServer(String filename) throws IOException, GeneralSecurityException {
@@ -37,10 +29,9 @@ public class ExampleServer {
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        SingleKeyStore caKeyStore = new SingleKeyStore(properties, "ca");
-        serverKeyStore = new SingleKeyStore(properties, "server");
-        sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(serverKeyStore.getKeyManagers(), caKeyStore.getTrustManagers(), null);
+        CertificateAuthority caKeyStore = new CertificateAuthority(new KeyStoreFile(properties, "ca", null), Period.ofDays(100));
+        KeyStoreFile serverKeyStore = new KeyStoreFile(properties, "server", caKeyStore.getCertificate());
+        sslContext = serverKeyStore.createSslContext();
     }
 
     public static void main(String[] args) throws IOException, GeneralSecurityException {

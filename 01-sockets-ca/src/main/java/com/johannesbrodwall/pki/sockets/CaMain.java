@@ -11,21 +11,19 @@ import java.util.Scanner;
 
 public class CaMain {
 
-    private final SingleKeyStore caStore;
+    private final CertificateAuthority certificateAuthority;
     private final ZonedDateTime validFrom = ZonedDateTime.now();
-    private final Period validity = Period.ofDays(100);
     private final Scanner scanner = new Scanner(System.in);
-    private final SingleKeyStore serverKeyStore;
-    private final SingleKeyStore clientKeyStore;
+    private final Properties properties;
+    private final KeyStoreFile caKeyStoreFile;
 
     public CaMain(String filename) throws IOException, GeneralSecurityException {
-        Properties properties = new Properties();
+        properties = new Properties();
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        caStore = new SingleKeyStore(properties, "ca");
-        serverKeyStore = new SingleKeyStore(properties, "server");
-        clientKeyStore = new SingleKeyStore(properties, "client");
+        caKeyStoreFile = new KeyStoreFile(properties, "ca", null);
+        certificateAuthority = new CertificateAuthority(caKeyStoreFile, Period.ofDays(100));
     }
 
     public static void main(String[] args) throws GeneralSecurityException, IOException {
@@ -53,26 +51,27 @@ public class CaMain {
     private void createCaCertificateAndKey() throws IOException, GeneralSecurityException {
         System.out.println("Organization name?");
         String organization = scanner.nextLine().trim();
-        System.out.println("Commmon name (name of certificate)");
+        System.out.println("Common name (name of certificate)");
         String commonName = scanner.nextLine().trim();
         String issuer = "O=" + organization + ",CN=" + commonName;
 
-        caStore.createCaCertificate(issuer, validFrom, validFrom.plus(validity));
-        caStore.store();
+        certificateAuthority.createCaCertificate(issuer, validFrom);
+        caKeyStoreFile.store();
     }
 
 
     private void createClientCertificateAndKey() throws GeneralSecurityException, IOException {
         System.out.println("Organization name?");
         String organization = scanner.nextLine().trim();
-        System.out.println("Commmon name (name of certificate)");
+        System.out.println("Common name (name of certificate)");
         String commonName = scanner.nextLine().trim();
         String subject = "O=" + organization + ",CN=" + commonName;
 
-        KeyPair keyPair = clientKeyStore.generateKeyPair();
-        clientKeyStore.setEntry(
+        KeyStoreFile clientKeyStore = new KeyStoreFile(properties, "client", certificateAuthority.getCertificate());
+        KeyPair keyPair = clientKeyStore.getKeyStore().generateKeyPair();
+        clientKeyStore.getKeyStore().setEntry(
                 keyPair.getPrivate(),
-                caStore.issueClientCertificate(subject, validFrom, validFrom.plus(validity), keyPair.getPublic())
+                certificateAuthority.issueClientCertificate(subject, validFrom, keyPair.getPublic())
         );
         clientKeyStore.store();
     }
@@ -84,10 +83,11 @@ public class CaMain {
         String hostname = scanner.nextLine().trim();
         String subject = "O=" + organization + ",CN=" + hostname;
 
-        KeyPair keyPair = serverKeyStore.generateKeyPair();
-        serverKeyStore.setEntry(
+        KeyStoreFile serverKeyStore = new KeyStoreFile(properties, "server", certificateAuthority.getCertificate());
+        KeyPair keyPair = serverKeyStore.getKeyStore().generateKeyPair();
+        serverKeyStore.getKeyStore().setEntry(
                 keyPair.getPrivate(),
-                caStore.issueServerCertificate(hostname, subject, validFrom, validFrom.plus(validity), keyPair.getPublic())
+                certificateAuthority.issueServerCertificate(hostname, subject, validFrom, keyPair.getPublic())
         );
         serverKeyStore.store();
     }

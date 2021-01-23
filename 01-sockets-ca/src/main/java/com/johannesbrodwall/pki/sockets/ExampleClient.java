@@ -10,19 +10,16 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.GeneralSecurityException;
-import java.security.cert.X509Certificate;
+import java.time.Period;
 import java.util.Properties;
 
 public class ExampleClient {
     private static final Logger logger = LoggerFactory.getLogger(ExampleClient.class);
 
-    private final SingleKeyStore clientKeyStore;
-    private SSLContext sslContext;
+    private final SSLContext sslContext;
 
-    public ExampleClient(SingleKeyStore clientKeyStore, X509Certificate caCertificate) throws IOException, GeneralSecurityException {
-        this.clientKeyStore = clientKeyStore;
-        sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(clientKeyStore.getKeyManagers(), SingleKeyStore.createTrustManager(caCertificate), null);
+    public ExampleClient(SingleKeyStore clientKeyStore) throws IOException, GeneralSecurityException {
+        sslContext = clientKeyStore.createSslContext();
     }
 
     public ExampleClient(String filename) throws IOException, GeneralSecurityException {
@@ -30,18 +27,16 @@ public class ExampleClient {
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        SingleKeyStore caKeyStore = new SingleKeyStore(properties, "ca");
-        clientKeyStore = new SingleKeyStore(properties, "client");
-        sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(clientKeyStore.getKeyManagers(), caKeyStore.getTrustManagers(), null);
+        CertificateAuthority caKeyStore = new CertificateAuthority(new KeyStoreFile(properties, "ca", null), Period.ofDays(100));
+        KeyStoreFile clientKeyStore = new KeyStoreFile(properties, "client", caKeyStore.getCertificate());
+        sslContext = clientKeyStore.createSslContext();
     }
 
     public static void main(String[] args) throws IOException, GeneralSecurityException {
-        new ExampleClient("local-sockets.properties").run();
+        new ExampleClient("local-sockets.properties").run(InetSocketAddress.createUnresolved("localhost", 30001));
     }
 
-    void run() throws IOException {
-        InetSocketAddress serverAddress = InetSocketAddress.createUnresolved("localhost", 30001);
+    void run(InetSocketAddress serverAddress) throws IOException {
         logger.info("Connecting to {}", serverAddress);
 
         Socket socket = sslContext.getSocketFactory().createSocket(serverAddress.getHostName(), serverAddress.getPort());

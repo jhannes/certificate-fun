@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -16,31 +17,31 @@ class CaMainTest {
     void integrationTest() throws GeneralSecurityException, IOException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
-        
-        SingleKeyStore caKeyStore = new SingleKeyStore("ca", new File("target/ca-keystore.p12"), "maslnglk".toCharArray(), "sdgnkslk".toCharArray());
-        SingleKeyStore clientKeyStore = new SingleKeyStore("client", new File("target/client-keystore.p12"), "maslnglk".toCharArray(), "sdgnkslk".toCharArray());
-        SingleKeyStore serverKeyStore = new SingleKeyStore("ca", new File("target/server-keystore.p12"), "maslnglk".toCharArray(), "sdgnkslk".toCharArray());
+
+        CertificateAuthority certificateAuthority = new CertificateAuthority(new SingleKeyStore("ca", "dsgnl".toCharArray(), null), Period.ofDays(1));
 
         ZonedDateTime now = ZonedDateTime.now();
-        caKeyStore.createCaCertificate("CN=Test Root CA,O=Certificate Fun Corp", now, now.plus(Period.ofDays(1)));
+        certificateAuthority.createCaCertificate("CN=Test Root CA,O=Certificate Fun Corp", now);
 
+        SingleKeyStore serverKeyStore = new SingleKeyStore("server", "sdgnkslk".toCharArray(), certificateAuthority.getCertificate());
         KeyPair serverKeyPair = serverKeyStore.generateKeyPair();
         serverKeyStore.setEntry(
                 serverKeyPair.getPrivate(),
-                caKeyStore.issueServerCertificate("localhost", "CN=localhost,O=Server Org", now, now.plus(Period.ofDays(1)), serverKeyPair.getPublic())
+                certificateAuthority.issueServerCertificate("localhost", "CN=localhost,O=Server Org", now, serverKeyPair.getPublic())
         );
-        
+
+        SingleKeyStore clientKeyStore = new SingleKeyStore("client", "sdgnkslk".toCharArray(), certificateAuthority.getCertificate());
         KeyPair clientKeyPair = clientKeyStore.generateKeyPair();
         clientKeyStore.setEntry(
                 clientKeyPair.getPrivate(),
-                caKeyStore.issueClientCertificate("CN=Client,O=Client Org", now, now.plus(Period.ofDays(1)), clientKeyPair.getPublic())
+                certificateAuthority.issueClientCertificate("CN=Client,O=Client Org", now, clientKeyPair.getPublic())
         );
 
-        ExampleServer server = new ExampleServer(serverKeyStore, caKeyStore.getCertificate());
+        ExampleServer server = new ExampleServer(serverKeyStore);
         new Thread(server::run).start();
         
-        ExampleClient client = new ExampleClient(clientKeyStore, caKeyStore.getCertificate());
-        client.run();
+        ExampleClient client = new ExampleClient(clientKeyStore);
+        client.run(InetSocketAddress.createUnresolved("localhost", 30001));
     }
     
 
