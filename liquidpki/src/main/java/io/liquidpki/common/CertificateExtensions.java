@@ -45,7 +45,7 @@ public class CertificateExtensions {
         return extension(Extension.KeyUsageExtensionType.class);
     }
 
-    private <T> T extension(Class<T> extensionType) {
+    public <T> T extension(Class<T> extensionType) {
         //noinspection unchecked
         return (T) extensions.stream()
                 .map(Extension::getExtensionType)

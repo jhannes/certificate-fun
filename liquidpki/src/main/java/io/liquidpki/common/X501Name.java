@@ -2,13 +2,27 @@ package io.liquidpki.common;
 
 import io.liquidpki.der.Der;
 
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class X501Name {
+    private static final Map<String, Der.OBJECT_IDENTIFIER> RDN_TYPES = Map.of(
+            "OU", new Der.OBJECT_IDENTIFIER("2.5.4.11"),
+            "O", new Der.OBJECT_IDENTIFIER("2.5.4.10"),
+            "CN", new Der.OBJECT_IDENTIFIER("2.5.4.3")
+    );
+    private static final Map<Der.OBJECT_IDENTIFIER, String> RDN_TYPE_NAMES = RDN_TYPES.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+
+
+
     private Der der;
     protected List<AttributeTypeAndValue> rdnSequence = new ArrayList<>();
 
@@ -23,6 +37,26 @@ public class X501Name {
 
     public X501Name() {
 
+    }
+
+    public X501Name(String distingishedName) {
+        try {
+            LdapName ldapName = new LdapName(distingishedName);
+            List<Rdn> rdns = ldapName.getRdns();
+            for (int i = rdns.size()-1; i >= 0; i--) {
+                rdn(rdns.get(i));
+            }
+        } catch (InvalidNameException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+    }
+
+    public void rdn(Rdn rdn) {
+        Der.OBJECT_IDENTIFIER type = RDN_TYPES.get(rdn.getType());
+        if (type == null) {
+            throw new IllegalArgumentException("Unknown DN type name " + rdn.getType());
+        }
+        rdnSequence.add(new AttributeTypeAndValue(type, rdn.getValue().toString()));
     }
 
     public void dump(PrintStream out, String fieldName, String indent, boolean debug) {
@@ -63,7 +97,7 @@ public class X501Name {
     }
 
 
-    private X501Name attribute(String oid, String value) {
+    public X501Name attribute(String oid, String value) {
         rdnSequence.add(new AttributeTypeAndValue(oid, value));
         return this;
     }
@@ -73,6 +107,12 @@ public class X501Name {
                 .map(attributeTypeAndValue -> new Der.SET(List.of(attributeTypeAndValue.toDer())))
                 .collect(Collectors.toList());
         return new Der.SEQUENCE(contents);
+    }
+
+    public String print() {
+        return rdnSequence.stream()
+                .map(entry -> RDN_TYPE_NAMES.get(entry.type) + "=" + entry.value.stringValue())
+                .collect(Collectors.joining(","));
     }
 
     public static class AttributeTypeAndValue {
@@ -86,7 +126,11 @@ public class X501Name {
         }
 
         public AttributeTypeAndValue(String type, String value) {
-            this.type = new Der.OBJECT_IDENTIFIER(type);
+            this(new Der.OBJECT_IDENTIFIER(type), value);
+        }
+
+        public AttributeTypeAndValue(Der.OBJECT_IDENTIFIER type, String value) {
+            this.type = type;
             this.value = new Der.PRINTABLE_STRING(value);
         }
 

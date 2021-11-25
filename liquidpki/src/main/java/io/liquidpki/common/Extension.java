@@ -182,6 +182,10 @@ public class Extension {
             return setValue(0b00100000, value);
         }
 
+        public ExtensionType crlSign(boolean value) {
+            return setValue(0b00000010, value);
+        }
+
         private KeyUsageExtensionType setValue(int bitmask, boolean value) {
             if (value) {
                 this.keyUsage |= bitmask;
@@ -202,18 +206,22 @@ public class Extension {
         private boolean getValue(int bitmask) {
             return (keyUsage & bitmask) != 0;
         }
-
     }
 
     public static class BasicConstraintExtensionType implements ExtensionType {
 
-        protected final Der.BOOLEAN ca;
+        protected Der.BOOLEAN ca;
         protected final Der.INTEGER pathLengthConstraint;
 
         public BasicConstraintExtensionType(Der.OCTET_STRING der) {
             Iterator<Der> iterator = ((Der.SEQUENCE)Der.parse(der.byteArray())).iterator();
             ca = iterator.hasNext() ? (Der.BOOLEAN) iterator.next() : null;
             pathLengthConstraint = iterator.hasNext() ? (Der.INTEGER) iterator.next() : null;
+        }
+
+        public BasicConstraintExtensionType() {
+            ca = new Der.BOOLEAN(false);
+            pathLengthConstraint = null;
         }
 
         @Override
@@ -235,6 +243,15 @@ public class Extension {
         @Override
         public String getOid() {
             return "2.5.29.19";
+        }
+
+        public ExtensionType ca(boolean ca) {
+            this.ca = new Der.BOOLEAN(ca);
+            return this;
+        }
+
+        public boolean ca() {
+            return this.ca.boolValue();
         }
     }
 

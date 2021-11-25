@@ -19,8 +19,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CertificateTest {
 
@@ -39,6 +41,26 @@ class CertificateTest {
     }
 
     @Test
+    void shouldParseAndOutputX501Name() {
+        X501Name name = new X501Name("CN=Certificate Corp, O=no, OU=Test");
+        assertThat(name.print()).isEqualTo("CN=Certificate Corp,O=no,OU=Test");
+    }
+
+    @Test
+    void shouldThrowOnMisformattedX501Name() {
+        assertThatThrownBy(() -> new X501Name("Not a DN"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid name: Not a DN");
+    }
+
+    @Test
+    void shouldThrowOnUnknownAttributeName() {
+        assertThatThrownBy(() -> new X501Name("ZZ=invalid type"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown DN type name ZZ");
+    }
+
+    @Test
     void shouldSerializedUnsignedCertificate() throws GeneralSecurityException {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         X509Certificate.TbsCertificate certificate = new X509Certificate.TbsCertificate()
@@ -48,6 +70,7 @@ class CertificateTest {
                 .subjectName(new X501Name().cn("Subject name").ou("Organization Unit"))
                 .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
                 .publicKey((RSAPublicKey) keyPair.getPublic())
+                .addExtension(new Extension.BasicConstraintExtensionType().ca(true))
                 .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true))
                 .addExtension(new Extension.SANExtensionType().dnsName("www.example.com").ipAddress("127.0.0.1"));
 
@@ -59,6 +82,7 @@ class CertificateTest {
         assertThat(restored.extensions().sanExtension().dnsName()).isEqualTo("www.example.com");
         assertThat(restored.extensions().keyUsage().keyCertSign()).isEqualTo(true);
         assertThat(restored.extensions().keyUsage().keyEncipherment()).isEqualTo(false);
+        assertThat(restored.extensions().extension(Extension.BasicConstraintExtensionType.class).ca()).isTrue();
 
         RSAPublicKey publicKey = restored.publicKey();
         assertThat(publicKey).isEqualTo(keyPair.getPublic());
@@ -145,7 +169,7 @@ class CertificateTest {
     @Test
     void shouldReadCertificate() throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        getClass().getResourceAsStream("/github-cert.crt").transferTo(buffer);
+        Objects.requireNonNull(getClass().getResourceAsStream("/github-cert.crt")).transferTo(buffer);
         List<byte[]> bytes = readPemObjects(buffer);
 
         X509Certificate certificate = new X509Certificate(bytes.get(0));
@@ -162,7 +186,7 @@ class CertificateTest {
     public static List<byte[]> readPemObjects(ByteArrayOutputStream buffer) {
         // 🤮🤢
         List<byte[]> certificatesDer = new ArrayList<>();
-        String content = new String(buffer.toByteArray());
+        String content = buffer.toString();
         StringBuilder currentCertificate = null;
         for (String line : content.split("\r?\n")) {
             if (line.matches("-----BEGIN [A-Z ]+-----")) {

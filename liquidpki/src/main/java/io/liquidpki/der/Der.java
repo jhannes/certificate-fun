@@ -29,6 +29,7 @@ public interface Der {
         tagMap.put(0x05, NULL::new);
         tagMap.put(0x06, OBJECT_IDENTIFIER::new);
         tagMap.put(0x0C, UFT8_STRING::new);
+        tagMap.put(0x1e, BMP_STRING::new);
         tagMap.put(0x13, PRINTABLE_STRING::new);
         tagMap.put(0x17, UTCTime::new);
         tagMap.put(0x30, SEQUENCE::new);
@@ -183,6 +184,7 @@ public interface Der {
         }
     }
 
+    // Eks 1.28.10.1 
     class OBJECT_IDENTIFIER extends DerValue {
         public OBJECT_IDENTIFIER(DerValue derValue) {
             super(derValue);
@@ -211,7 +213,7 @@ public interface Der {
 
         @Override
         protected String printValue() {
-            return getObjectIdentifier();
+            return getName();
         }
 
         public String getName() {
@@ -268,6 +270,21 @@ public interface Der {
         @Override
         public String stringValue() {
             return super.stringValue(StandardCharsets.UTF_8);
+        }
+    }
+
+    class BMP_STRING extends DerValue {
+
+        public BMP_STRING(DerValue derValue) {
+            super(derValue);
+        }
+
+        public BMP_STRING(String value) {
+            super(0x1e, value.getBytes(StandardCharsets.UTF_16));
+        }
+
+        public String stringValue() {
+            return super.stringValue(StandardCharsets.UTF_16);
         }
     }
 

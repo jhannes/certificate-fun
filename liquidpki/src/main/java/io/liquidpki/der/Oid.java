@@ -1,5 +1,6 @@
 package io.liquidpki.der;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -9,7 +10,8 @@ public class Oid {
 
     private static Map<String, String> microsoftAttributes = Map.of(
             "1.3.6.1.4.1.311.60.2.1.2", "State or province",
-            "1.3.6.1.4.1.311.60.2.1.3", "Country"
+            "1.3.6.1.4.1.311.60.2.1.3", "Country",
+            "1.3.14.3.2.26", "Secure Hash Algorithm, revision 1 (SHA-1)"
     );
 
     private static Map<String, String> x500Attributes = Map.of(
@@ -34,12 +36,26 @@ public class Oid {
             "2.5.29.35", "certificateExtension"
     );
 
-    private static Map<String, String> rsaOidMap = Map.of(
+    private static Map<String, String> rsaOidMap = new HashMap<>(Map.of(
             "1.2.840.113549.1.1.11", "sha256WithRSAEncryption",
             "1.2.840.113549.1.1.1", "RSA encryption",
             "1.2.840.113549.1.9.14", "PKCS#9 ExtensionRequest",
-            "1.2.840.113549.1.1.13", "sha512WithRSAEncryption"
-    );
+            "1.2.840.113549.1.1.13", "sha512WithRSAEncryption",
+            "1.2.840.113549.1.7.1", "id-data",
+            "1.2.840.113549.1.7.2", "signedData",
+            "1.2.840.113549.1.7.3", "envelopedData",
+            "1.2.840.113549.1.7.4", "signedAndEnvelopedData",
+            "1.2.840.113549.1.7.5", "digestedData",
+            "1.2.840.113549.1.7.6", "encryptedData"));
+    public static final String PKCS8ShroudedKeyBag = "1.2.840.113549.1.12.10.1.2";
+
+    static {
+        rsaOidMap.put(PKCS8ShroudedKeyBag, "pkcs8ShroudedKeyBag");
+        rsaOidMap.put("1.2.840.113549.1.12.1.3", "pbeWithSHAAnd3-KeyTripleDES-CBC");
+        rsaOidMap.put("1.2.840.113549.1.12.1.6", "pbewithSHAAnd40BitRC2-CBC");
+        rsaOidMap.put("1.2.840.113549.1.9.20", "friendlyName");
+        rsaOidMap.put("1.2.840.113549.1.9.21", "localKeyId");
+    }
 
 
     public static String get(String objectIdentifier) {
