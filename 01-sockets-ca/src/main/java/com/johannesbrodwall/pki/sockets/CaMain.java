@@ -23,7 +23,7 @@ public class CaMain {
             properties.load(reader);
         }
         caKeyStoreFile = new KeyStoreFile(properties, "ca", null);
-        certificateAuthority = new CertificateAuthority(caKeyStoreFile, Period.ofDays(100));
+        certificateAuthority = new SunCertificateAuthority(caKeyStoreFile, Period.ofDays(100));
     }
 
     public static void main(String[] args) throws GeneralSecurityException, IOException {

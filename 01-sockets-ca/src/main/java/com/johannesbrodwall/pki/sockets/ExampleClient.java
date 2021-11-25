@@ -27,7 +27,7 @@ public class ExampleClient {
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        CertificateAuthority caKeyStore = new CertificateAuthority(new KeyStoreFile(properties, "ca", null), Period.ofDays(100));
+        CertificateAuthority caKeyStore = new SunCertificateAuthority(new KeyStoreFile(properties, "ca", null), Period.ofDays(100));
         KeyStoreFile clientKeyStore = new KeyStoreFile(properties, "client", caKeyStore.getCertificate());
         sslContext = clientKeyStore.createSslContext();
     }
@@ -42,6 +42,6 @@ public class ExampleClient {
         Socket socket = sslContext.getSocketFactory().createSocket(serverAddress.getHostName(), serverAddress.getPort());
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         socket.getInputStream().transferTo(buffer);
-        System.out.println(buffer.toString());
+        System.out.println(buffer);
     }
 }

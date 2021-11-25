@@ -29,7 +29,7 @@ public class ExampleServer {
         try (FileReader reader = new FileReader(filename)) {
             properties.load(reader);
         }
-        CertificateAuthority caKeyStore = new CertificateAuthority(new KeyStoreFile(properties, "ca", null), Period.ofDays(100));
+        CertificateAuthority caKeyStore = new SunCertificateAuthority(new KeyStoreFile(properties, "ca", null), Period.ofDays(100));
         KeyStoreFile serverKeyStore = new KeyStoreFile(properties, "server", caKeyStore.getCertificate());
         sslContext = serverKeyStore.createSslContext();
     }

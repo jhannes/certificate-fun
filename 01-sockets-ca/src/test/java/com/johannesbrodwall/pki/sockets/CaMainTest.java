@@ -2,7 +2,6 @@ package com.johannesbrodwall.pki.sockets;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
@@ -12,13 +11,13 @@ import java.time.Period;
 import java.time.ZonedDateTime;
 
 class CaMainTest {
-    
+
     @Test
     void integrationTest() throws GeneralSecurityException, IOException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
 
-        CertificateAuthority certificateAuthority = new CertificateAuthority(new SingleKeyStore("ca", "dsgnl".toCharArray(), null), Period.ofDays(1));
+        SunCertificateAuthority certificateAuthority = new SunCertificateAuthority(new SingleKeyStore("ca", "dsgnl".toCharArray(), null), Period.ofDays(1));
 
         ZonedDateTime now = ZonedDateTime.now();
         certificateAuthority.createCaCertificate("CN=Test Root CA,O=Certificate Fun Corp", now);
@@ -39,10 +38,10 @@ class CaMainTest {
 
         ExampleServer server = new ExampleServer(serverKeyStore);
         new Thread(server::run).start();
-        
+
         ExampleClient client = new ExampleClient(clientKeyStore);
         client.run(InetSocketAddress.createUnresolved("localhost", 30001));
     }
-    
+
 
 }
