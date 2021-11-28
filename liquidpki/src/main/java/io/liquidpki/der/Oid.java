@@ -35,12 +35,15 @@ public class Oid {
             "2.5.29.37", "Extended Key Usage",
             "2.5.29.35", "certificateExtension"
     );
+    private static Map<String, String> rsaAlgOidMap = new HashMap<>(Map.of(
+            "1.2.840.113549.1.1.1", "RSA encryption",
+            "1.2.840.113549.1.1.5", "sha1-with-rsa-signature",
+            "1.2.840.113549.1.1.11", "sha256WithRSAEncryption",
+            "1.2.840.113549.1.1.13", "sha512WithRSAEncryption"
+    ));
 
     private static Map<String, String> rsaOidMap = new HashMap<>(Map.of(
-            "1.2.840.113549.1.1.11", "sha256WithRSAEncryption",
-            "1.2.840.113549.1.1.1", "RSA encryption",
             "1.2.840.113549.1.9.14", "PKCS#9 ExtensionRequest",
-            "1.2.840.113549.1.1.13", "sha512WithRSAEncryption",
             "1.2.840.113549.1.7.1", "id-data",
             "1.2.840.113549.1.7.2", "signedData",
             "1.2.840.113549.1.7.3", "envelopedData",
@@ -65,6 +68,8 @@ public class Oid {
             return x500Attributes.get(objectIdentifier);
         } else if (x509oidMap.containsKey(objectIdentifier)) {
             return x509oidMap.get(objectIdentifier);
+        } else if (rsaAlgOidMap.containsKey(objectIdentifier)) {
+            return rsaAlgOidMap.get(objectIdentifier);
         } else if (rsaOidMap.containsKey(objectIdentifier)) {
             return rsaOidMap.get(objectIdentifier);
         }

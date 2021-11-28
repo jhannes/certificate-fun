@@ -2,6 +2,8 @@ package com.johannesbrodwall.pki.server;
 
 import com.johannesbrodwall.pki.ca.CertificateAuthority;
 import com.johannesbrodwall.pki.ca.SunCertificateAuthority;
+import com.johannesbrodwall.pki.util.SunCertificateUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -12,6 +14,7 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Period;
@@ -21,13 +24,23 @@ import java.util.UUID;
 
 import static com.johannesbrodwall.pki.util.SslUtil.createKeyStore;
 import static com.johannesbrodwall.pki.util.SslUtil.createSslContext;
-import static com.johannesbrodwall.pki.util.SslUtil.readCertificate;
 import static com.johannesbrodwall.pki.util.SslUtil.loadKeyStore;
-import static com.johannesbrodwall.pki.util.SslUtil.saveCertificate;
+import static com.johannesbrodwall.pki.util.SslUtil.readCertificate;
 import static com.johannesbrodwall.pki.util.SslUtil.storeKeyStore;
+import static com.johannesbrodwall.pki.util.SslUtil.writeCertificate;
+import static com.johannesbrodwall.pki.util.SslUtil.writeCertificationRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TestClientTest {
+
+    private KeyPairGenerator generator;
+    private String org = "JohannesCorp " + UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() throws NoSuchAlgorithmException {
+        generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+    }
 
     @Test
     void shouldEchoClientCertificate() throws Exception {
@@ -59,28 +72,34 @@ class TestClientTest {
 
     @Test
     void shouldGenerate() throws Exception {
-        String org = "JohannesCorp " + UUID.randomUUID();
+        CertificateAuthority ca = new SunCertificateAuthority(Period.ofDays(10), generator.generateKeyPair(), "CN=Johannes CA, O=" + org, ZonedDateTime.now());
+
         String clientSubjectDN = "CN=JavaZone Demo Cert" + UUID.randomUUID() + ", OU=dev, O=" + org;
         InetSocketAddress httpsAddress = new InetSocketAddress("javazone.ssldemo.local", 0);
 
         Path directory = Path.of("target/test-data/certificates/");
 
-        final KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
-        CertificateAuthority ca = new SunCertificateAuthority(Period.ofDays(10), generator.generateKeyPair(), "CN=Johannes CA, O=" + org, ZonedDateTime.now());
         X509Certificate caCertificate = ca.getCaCertificate();
-        saveCertificate(caCertificate, directory.resolve("ca.crt"));
+        writeCertificate(caCertificate, directory.resolve("ca.crt"));
         caCertificate = readCertificate(directory.resolve("ca.crt"));
 
         KeyPair serverKeyPair = generator.generateKeyPair();
         String serverSubjectDN = "CN=" + httpsAddress.getHostName() + ",O=" + org;
-        X509Certificate serverCertificate = ca.issueServerCertificate(httpsAddress.getHostName(), serverSubjectDN, ZonedDateTime.now(), serverKeyPair.getPublic());
+
+        byte[] serverCsr = SunCertificateUtil.createHostnameCsr(serverKeyPair, serverSubjectDN, httpsAddress.getHostName());
+        writeCertificationRequest(serverCsr, directory.resolve("server.csr"));
+
+        X509Certificate serverCertificate = ca.issueCertificate(serverCsr, ZonedDateTime.now());
+        assertThat(serverCertificate.getSubjectAlternativeNames()).containsOnly(List.of(2, httpsAddress.getHostName()));
         KeyStore serverKeyStore = createKeyStore(serverKeyPair.getPrivate(), null, serverCertificate);
         storeKeyStore(serverKeyStore, directory.resolve("server.p12"), "");
         serverKeyStore = loadKeyStore(directory.resolve("server.p12"), "");
 
         KeyPair clientKeyPair = generator.generateKeyPair();
-        X509Certificate clientCertificate = ca.issueClientCertificate(clientSubjectDN, ZonedDateTime.now(), clientKeyPair.getPublic());
+        byte[] clientCsr = SunCertificateUtil.createCsr(clientKeyPair, clientSubjectDN);
+        writeCertificationRequest(clientCsr, directory.resolve("client.csr"));
+
+        X509Certificate clientCertificate = ca.issueCertificate(clientCsr, ZonedDateTime.now());
         KeyStore clientKeyStore = createKeyStore(clientKeyPair.getPrivate(), null, clientCertificate);
         storeKeyStore(clientKeyStore, directory.resolve("client.p12"), "");
         clientKeyStore = loadKeyStore(directory.resolve("client.p12"), "");

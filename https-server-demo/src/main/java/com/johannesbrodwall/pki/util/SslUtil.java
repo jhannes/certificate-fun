@@ -55,6 +55,13 @@ public class SslUtil {
         return keyStore;
     }
 
+    public static void storeKeyStore(KeyStore keyStore, Path path, String password) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+        Files.createDirectories(path.getParent());
+        try (OutputStream stream = Files.newOutputStream(path)) {
+            keyStore.store(stream, password.toCharArray());
+        }
+    }
+
     public static KeyManager[] createKeyManagers(KeyStore keyStore, char[] password) throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         keyManagerFactory.init(keyStore, password);
@@ -93,25 +100,27 @@ public class SslUtil {
         );
     }
 
-    public static void saveCertificate(X509Certificate certificate, Path path) throws IOException, CertificateEncodingException {
+    public static void writeCertificationRequest(byte[] serverCsr, Path path) throws IOException {
+        writePemFile(path, serverCsr, "CERTIFICATE REQUEST");
+    }
+
+    public static void writeCertificate(X509Certificate certificate, Path path) throws IOException, CertificateEncodingException {
+        writePemFile(path, certificate.getEncoded(), "CERTIFICATE");
+    }
+
+    private static void writePemFile(Path path, byte[] encoded, String label) throws IOException {
         Files.createDirectories(path.getParent());
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            writeCertificate(writer, certificate);
+            writePemFile(writer, encoded, label);
         }
     }
 
-    public static void storeKeyStore(KeyStore keyStore, Path path, String password) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
-        Files.createDirectories(path.getParent());
-        try (OutputStream stream = Files.newOutputStream(path)) {
-            keyStore.store(stream, password.toCharArray());
-        }
-    }
-
-
-    public static void writeCertificate(Writer writer, X509Certificate certificate) throws IOException, CertificateEncodingException {
-        writer.write("-----BEGIN CERTIFICATE-----\n");
+    /**
+     * <a href="https://www.rfc-editor.org/rfc/rfc7468">PKIX Textual Encodings</a>
+     * */
+    private static void writePemFile(Writer writer, byte[] rawCrtText, final String label) throws IOException {
+        writer.write("-----BEGIN " + label + "-----\n");
         final Base64.Encoder encoder = Base64.getMimeEncoder(64, "\n".getBytes());
-        final byte[] rawCrtText = certificate.getEncoded();
         final String encodedCertText = new String(encoder.encode(rawCrtText));
         writer.write(encodedCertText);
         writer.write("\n-----END CERTIFICATE-----");
