@@ -8,6 +8,8 @@ import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static com.johannesbrodwall.pki.util.SslUtil.toSslContext;
 
@@ -20,7 +22,7 @@ public class HttpsDemoClient {
         new ConfigObserver("pkidemo")
                 .onPrefixedValue("client.key", testClient::getSslContext, testClient::setSslContext)
                 .onUrlValue("client.url", new URL("https://localhost"), testClient::setUrl);
-        System.out.println(testClient.fetch("/demo/test"));
+        System.out.println(testClient.fetch("/demo/echo"));
     }
 
     private void setUrl(URL url) {
@@ -28,7 +30,8 @@ public class HttpsDemoClient {
     }
 
     private SSLContext getSslContext(ConfigMap configMap) {
-        return toSslContext(configMap, configMap.getRegularFile("keyStore"), configMap.listFiles("trustedCertificates"));
+        Path keyStore = configMap.optionalFile("keyStore").filter(Files::isRegularFile).orElse(null);
+        return toSslContext(configMap, keyStore, configMap.listFiles("trustedCertificates"));
     }
 
     public String fetch(String spec) throws IOException {

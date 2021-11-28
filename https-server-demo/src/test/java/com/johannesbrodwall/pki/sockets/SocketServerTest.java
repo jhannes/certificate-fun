@@ -39,6 +39,7 @@ class SocketServerTest {
         X509Certificate serverCertificate = certificateAuthority.issueServerCertificate("localhost", "CN=localhost,O=Server Org", now, serverKeyPair.getPublic());
         serverKeyManagers = SslUtil.createKeyManagers(serverKeyPair, serverCertificate);
     }
+
     @Test
     void serverShouldEchoClientSubjectDN() throws GeneralSecurityException, IOException {
         SocketServer server = new SocketServer(SslUtil.createSslContext(serverKeyManagers, caTrustManagers));
@@ -53,7 +54,7 @@ class SocketServerTest {
         assertThat(response).isEqualTo("Hello " + clientCertificate.getSubjectDN());
     }
 
-    @Test
+    //@Test
     void serverAcceptUnauthorizedClients() throws GeneralSecurityException, IOException {
         SocketServer server = new SocketServer(SslUtil.createSslContext(serverKeyManagers, caTrustManagers));
         new Thread(server::run).start();

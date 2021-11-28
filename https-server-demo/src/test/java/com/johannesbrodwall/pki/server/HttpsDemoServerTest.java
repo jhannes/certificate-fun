@@ -2,6 +2,7 @@ package com.johannesbrodwall.pki.server;
 
 import com.johannesbrodwall.pki.ca.CertificateAuthority;
 import com.johannesbrodwall.pki.ca.SunCertificateAuthority;
+import com.johannesbrodwall.pki.util.SslUtil;
 import com.johannesbrodwall.pki.util.SunCertificateUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class HttpsDemoServerTest {
 
     private KeyPairGenerator generator;
-    private String org = "JohannesCorp " + UUID.randomUUID();
+    private final String org = "JohannesCorp " + UUID.randomUUID();
 
     @BeforeEach
     void setUp() throws NoSuchAlgorithmException {
@@ -61,7 +62,7 @@ class HttpsDemoServerTest {
         server.setHttpsConfiguration(httpsAddress, serverSslContext);
         server.start();
 
-        HttpsURLConnection connection = (HttpsURLConnection) new URL(server.getURL(), "/demo/test").openConnection();
+        HttpsURLConnection connection = (HttpsURLConnection) new URL(server.getURL(), "/demo/echo").openConnection();
         connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
 
         assertThat(connection.getResponseCode()).isEqualTo(200);
@@ -72,12 +73,14 @@ class HttpsDemoServerTest {
 
     @Test
     void shouldGenerate() throws Exception {
+        Path directory = Path.of("target/test-data/certificates/");
+
         CertificateAuthority ca = new SunCertificateAuthority(Period.ofDays(10), generator.generateKeyPair(), "CN=Johannes CA, O=" + org, ZonedDateTime.now());
+        SslUtil.storeKeyStore(ca.getKeyStore(), directory.resolve("ca.p12"), "");
+        ca = new SunCertificateAuthority(loadKeyStore(directory.resolve("ca.p12"), ""), Period.ofDays(1));
 
         String clientSubjectDN = "CN=JavaZone Demo Cert" + UUID.randomUUID() + ", OU=dev, O=" + org;
         InetSocketAddress httpsAddress = new InetSocketAddress("javazone.ssldemo.local", 0);
-
-        Path directory = Path.of("target/test-data/certificates/");
 
         X509Certificate caCertificate = ca.getCaCertificate();
         writeCertificate(caCertificate, directory.resolve("ca.crt"));
@@ -109,7 +112,7 @@ class HttpsDemoServerTest {
         server.setHttpsConfiguration(httpsAddress, createSslContext(serverKeyStore, null, List.of(caCertificate)));
         server.start();
 
-        HttpsURLConnection connection = (HttpsURLConnection) new URL(server.getURL(), "/demo/test").openConnection();
+        HttpsURLConnection connection = (HttpsURLConnection) new URL(server.getURL(), "/demo/echo").openConnection();
         connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
 
         assertThat(connection.getResponseCode()).isEqualTo(200);

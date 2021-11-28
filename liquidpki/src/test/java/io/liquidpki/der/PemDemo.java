@@ -20,10 +20,14 @@ public class PemDemo {
    }
 
     private static Der decodePemFile(String filename) throws IOException {
+        return Der.parse(pemToBytes(filename));
+    }
+
+    private static byte[] pemToBytes(String filename) throws IOException {
         String pemContent = Files.readAllLines(Paths.get(filename)).stream()
                 .filter(s -> !s.startsWith("-----"))
                 .map(String::trim)
                 .collect(Collectors.joining(""));
-        return Der.parse(Base64.getDecoder().decode(pemContent));
+        return Base64.getDecoder().decode(pemContent);
     }
 }

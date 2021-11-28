@@ -69,7 +69,7 @@ public class SunCertificateUtil {
             X500Name issuer,
             ZonedDateTime validFrom,
             ZonedDateTime validTo,
-            CertificateExtensions extensions,
+            Optional<CertificateExtensions> extensions,
             PublicKey publicKey
     ) throws CertificateException, IOException {
         X509CertInfo certInfo = new X509CertInfo();
@@ -85,8 +85,8 @@ public class SunCertificateUtil {
         certInfo.set(X509CertInfo.SUBJECT, subject);
         certInfo.set(X509CertInfo.ISSUER, issuer);
         certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
-        if (extensions != null) {
-            certInfo.set(X509CertInfo.EXTENSIONS, extensions);
+        if (extensions.isPresent()) {
+            certInfo.set(X509CertInfo.EXTENSIONS, extensions.get());
         }
         return new X509CertImpl(certInfo);
     }

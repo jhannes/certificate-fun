@@ -1,3 +1,5 @@
+ca.keystore=https-server-demo/src/test/resources/certificates/ca.p12
+
 # hostname:port
 https.address=
 

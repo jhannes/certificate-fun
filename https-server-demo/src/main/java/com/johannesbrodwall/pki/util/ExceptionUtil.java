@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 public class ExceptionUtil {
     @FunctionalInterface
-    interface FunctionThrowing<T,R,EX extends Throwable> {
+    public interface FunctionThrowing<T,R,EX extends Throwable> {
         R apply(T a) throws EX;
     }
 
@@ -23,7 +23,7 @@ public class ExceptionUtil {
     }
 
     @SuppressWarnings("RedundantThrows")
-    private static <EX extends Throwable> EX helper(Throwable e) throws EX {
-        return (EX)e;
+    private static <EX extends Throwable> RuntimeException helper(Throwable e) throws EX {
+        throw (EX)e;
     }
 }

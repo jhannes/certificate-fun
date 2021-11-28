@@ -28,6 +28,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SslUtil {
     @SuppressWarnings("RedundantThrows")
@@ -49,6 +50,9 @@ public class SslUtil {
     }
 
     public static KeyStore loadKeyStore(Path keyStoreFile, String password) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        if (keyStoreFile == null) {
+            return null;
+        }
         KeyStore keyStore = KeyStore.getInstance(keyStoreFile.getFileName().toString().endsWith(".p12") ? "pkcs12" : KeyStore.getDefaultType());
         try (InputStream inputStream = Files.newInputStream(keyStoreFile)) {
             keyStore.load(inputStream, password.toCharArray());
@@ -57,7 +61,9 @@ public class SslUtil {
     }
 
     public static void storeKeyStore(KeyStore keyStore, Path path, String password) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
-        Files.createDirectories(path.getParent());
+        if (path.getParent() != null) {
+            Files.createDirectories(path.getParent());
+        }
         try (OutputStream stream = Files.newOutputStream(path)) {
             keyStore.store(stream, password.toCharArray());
         }
@@ -120,19 +126,27 @@ public class SslUtil {
     private static void writePemFile(Path path, byte[] encoded, String label) throws IOException {
         Files.createDirectories(path.getParent());
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            writePemFile(writer, encoded, label);
+            writer.write(writePemString(encoded, label));
         }
     }
 
     /**
      * <a href="https://www.rfc-editor.org/rfc/rfc7468">PKIX Textual Encodings</a>
      * */
-    private static void writePemFile(Writer writer, byte[] rawCrtText, final String label) throws IOException {
-        writer.write("-----BEGIN " + label + "-----\n");
-        final Base64.Encoder encoder = Base64.getMimeEncoder(64, "\n".getBytes());
-        final String encodedCertText = new String(encoder.encode(rawCrtText));
-        writer.write(encodedCertText);
-        writer.write("\n-----END CERTIFICATE-----");
-        writer.flush();
+    public static String writePemString(byte[] derEncodedObject, String label) {
+        Base64.Encoder encoder = Base64.getMimeEncoder(64, "\n".getBytes());
+        String encodedCertText = new String(encoder.encode(derEncodedObject));
+        return "-----BEGIN " + label + "-----\n" +
+               encodedCertText +
+               "\n-----END " + label + "-----";
     }
+
+    public static byte[] parsePemString(String data) {
+        String pemContent = Stream.of(data.split("\n"))
+                .filter(s -> !s.startsWith("-----"))
+                .map(String::trim)
+                .collect(Collectors.joining(""));
+        return Base64.getDecoder().decode(pemContent);
+    }
+
 }

@@ -2,9 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hello World</title>
+    <title>JavaZone Https Demo</title>
 </head>
 <body>
-<h1>Hello World</h1>
+
+<h1>JavaZone Https Demo</h1>
+
+<div><a href="echo">Show client certificate</a></div>
+
+<h2>Issue a new certificate</h2>
+
+<form action="ca/certificateRequest" method="post" enctype="multipart/form-data">
+    <div><input type="file" name="certificateRequestFile" accept=".req, .csr, .p10" required></div>
+    <button>Request certificate</button>
+</form>
+
+<h2>Issue a new private key</h2>
+
+<form action="ca/privateKey" method="post">
+    <div><label>Common name: <input name="commonName" required /></label></div>
+    <button>Generate p12-file</button>
+</form>
+
+
 </body>
 </html>
