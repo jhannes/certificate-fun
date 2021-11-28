@@ -31,7 +31,7 @@ import static com.johannesbrodwall.pki.util.SslUtil.writeCertificate;
 import static com.johannesbrodwall.pki.util.SslUtil.writeCertificationRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TestClientTest {
+class HttpsDemoServerTest {
 
     private KeyPairGenerator generator;
     private String org = "JohannesCorp " + UUID.randomUUID();
@@ -57,7 +57,7 @@ class TestClientTest {
         X509Certificate clientCertificate = (X509Certificate) clientKeyStore.getCertificate(clientKeyStore.aliases().nextElement());
         SSLContext clientSslContext = createSslContext(clientKeyStore, null, List.of(caCertificate));
 
-        TestServer server = new TestServer();
+        HttpsDemoServer server = new HttpsDemoServer();
         server.setHttpsConfiguration(httpsAddress, serverSslContext);
         server.start();
 
@@ -105,7 +105,7 @@ class TestClientTest {
         clientKeyStore = loadKeyStore(directory.resolve("client.p12"), "");
         SSLContext clientSslContext = createSslContext(clientKeyStore, null, List.of(caCertificate));
 
-        TestServer server = new TestServer();
+        HttpsDemoServer server = new HttpsDemoServer();
         server.setHttpsConfiguration(httpsAddress, createSslContext(serverKeyStore, null, List.of(caCertificate)));
         server.start();
 

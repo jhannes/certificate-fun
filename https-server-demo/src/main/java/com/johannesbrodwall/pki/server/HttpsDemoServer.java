@@ -18,15 +18,15 @@ import java.util.Optional;
 
 import static com.johannesbrodwall.pki.util.SslUtil.toSslContext;
 
-public class TestServer {
-    private static final Logger logger = LoggerFactory.getLogger(TestServer.class);
+public class HttpsDemoServer {
+    private static final Logger logger = LoggerFactory.getLogger(HttpsDemoServer.class);
 
     private final Server server = new Server();
     private final SslServerConnector secureConnector = new SslServerConnector(server);
     private final WebAppContext application = new WebApplication("/webapp", "/demo", new DemoAppListener());
 
     public static void main(String[] args) throws Exception {
-        TestServer server = new TestServer();
+        HttpsDemoServer server = new HttpsDemoServer();
         new ConfigObserver("pkidemo")
                 .onPrefixedValue("https", server::setHttpsConfiguration);
         server.start();
@@ -39,7 +39,7 @@ public class TestServer {
         Optional<Path> keystore = config.optionalFile("keystore");
         if (keystore.isPresent()) {
             secureConnector.start(
-                    config.getInetSocketAddress("port", 8443),
+                    config.getInetSocketAddress("address", 8443),
                     toSslContext(config, keystore.get(), config.listFiles("trustedCertificates")),
                     config.getBoolean("wantClientAuth"),
                     config.getBoolean("needClientAuth")

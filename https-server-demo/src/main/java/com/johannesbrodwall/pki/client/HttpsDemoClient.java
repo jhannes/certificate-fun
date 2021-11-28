@@ -1,6 +1,5 @@
 package com.johannesbrodwall.pki.client;
 
-import com.johannesbrodwall.pki.util.SslUtil;
 import org.actioncontroller.config.ConfigMap;
 import org.actioncontroller.config.ConfigObserver;
 
@@ -9,17 +8,17 @@ import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Path;
-import java.security.GeneralSecurityException;
 
-public class TestClient {
+import static com.johannesbrodwall.pki.util.SslUtil.toSslContext;
+
+public class HttpsDemoClient {
     private SSLContext sslContext;
     private URL url;
 
     public static void main(String[] args) throws IOException {
-        TestClient testClient = new TestClient();
+        HttpsDemoClient testClient = new HttpsDemoClient();
         new ConfigObserver("pkidemo")
-                .onPrefixedValue("clientKey", testClient::getSslContext, testClient::setSslContext)
+                .onPrefixedValue("client.key", testClient::getSslContext, testClient::setSslContext)
                 .onUrlValue("client.url", new URL("https://localhost"), testClient::setUrl);
         System.out.println(testClient.fetch("/demo/test"));
     }
@@ -28,9 +27,8 @@ public class TestClient {
         this.url = url;
     }
 
-    private SSLContext getSslContext(ConfigMap configMap) throws GeneralSecurityException, IOException {
-        Path keyStoreFile = configMap.optionalFile("keyStore").orElseThrow(() -> new IllegalArgumentException("Missing keyStore"));
-        return SslUtil.toSslContext(configMap, keyStoreFile, configMap.listFiles("trustedCertificates"));
+    private SSLContext getSslContext(ConfigMap configMap) {
+        return toSslContext(configMap, configMap.getRegularFile("keyStore"), configMap.listFiles("trustedCertificates"));
     }
 
     public String fetch(String spec) throws IOException {

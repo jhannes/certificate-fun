@@ -24,7 +24,7 @@
         <dependency>
             <groupId>io.github.jhannes</groupId>
             <artifactId>action-controller</artifactId>
-            <version>0.0.34</version>
+            <version>0.0.35</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -51,6 +51,7 @@
                     <target>11</target>
                     <compilerArgs>
                         <arg>--add-exports=java.base/sun.security.x509=ALL-UNNAMED</arg>
+                        <arg>--add-exports=java.base/sun.security.pkcs=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/sun.security.pkcs10=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/sun.security.util=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/sun.security.provider.certpath=ALL-UNNAMED</arg>

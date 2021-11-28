@@ -18,7 +18,7 @@ public class ExceptionUtil {
         };
     }
 
-    private static RuntimeException softenException(Throwable e) {
+    public static RuntimeException softenException(Throwable e) {
         return helper(e);
     }
 

@@ -95,14 +95,18 @@ public class SslUtil {
         return createSslContext(createKeyManagers(serverKeyStore, keyPassword), createTrustManagers(certificates));
     }
 
-    public static SSLContext toSslContext(Map<String, String> config, Path keystoreFile, List<Path> trustedCertificates) throws GeneralSecurityException, IOException {
-        String keyStorePassword = config.getOrDefault("keyStorePassword", "");
-        String keyPassword = config.getOrDefault("keyPassword", "");
-        return createSslContext(
-                loadKeyStore(keystoreFile, keyStorePassword),
-                keyPassword.toCharArray(),
-                readCertificates(trustedCertificates)
-        );
+    public static SSLContext toSslContext(Map<String, String> config, Path keystoreFile, List<Path> trustedCertificates) {
+        try {
+            String keyStorePassword = config.getOrDefault("keyStorePassword", "");
+            String keyPassword = config.getOrDefault("keyPassword", "");
+            return createSslContext(
+                    loadKeyStore(keystoreFile, keyStorePassword),
+                    keyPassword.toCharArray(),
+                    readCertificates(trustedCertificates)
+            );
+        } catch (GeneralSecurityException | IOException e) {
+            throw ExceptionUtil.softenException(e);
+        }
     }
 
     public static void writeCertificationRequest(byte[] serverCsr, Path path) throws IOException {
