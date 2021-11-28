@@ -1,6 +1,9 @@
 /local-*
+/*.properties
 target/
 *.iml
 .idea/
 *.p12
+*.pfx
 *.crt
+*.cer
