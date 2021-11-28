@@ -49,15 +49,18 @@ public class SocketServer {
     }
 
     private void handleClient(Socket clientSocket) throws IOException {
-        String peer = "world";
         if (clientSocket instanceof SSLSocket) {
-            SSLSocket sslSocket = (SSLSocket) clientSocket;
-            Certificate[] certificates = sslSocket.getSession().getPeerCertificates();
-            logger.info("{} certificates: {}", "Peer", certificates);
-            peer = ((X509Certificate)certificates[0]).getSubjectDN().getName();
+            try {
+                SSLSocket sslSocket = (SSLSocket) clientSocket;
+                Certificate[] certificates = sslSocket.getSession().getPeerCertificates();
+                logger.info("{} certificates: {}", "Peer", certificates);
+                String peer = ((X509Certificate) certificates[0]).getSubjectDN().getName();
+                clientSocket.getOutputStream().write(("Hello " + peer).getBytes());
+            } catch (SSLPeerUnverifiedException e) {
+                logger.info("Responding to anonymous client");
+                clientSocket.getOutputStream().write(("Hello stranger").getBytes());
+            }
         }
-        logger.info("Responding");
-        clientSocket.getOutputStream().write(("Hello " + peer).getBytes());
     }
 
     public int getPort() {

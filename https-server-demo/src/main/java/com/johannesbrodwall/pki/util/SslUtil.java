@@ -13,6 +13,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -60,6 +61,10 @@ public class SslUtil {
         try (OutputStream stream = Files.newOutputStream(path)) {
             keyStore.store(stream, password.toCharArray());
         }
+    }
+
+    public static KeyManager[] createKeyManagers(KeyPair serverKeyPair, X509Certificate serverCertificate) throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, CertificateException, IOException {
+        return createKeyManagers(createKeyStore(serverKeyPair.getPrivate(), null, serverCertificate), null);
     }
 
     public static KeyManager[] createKeyManagers(KeyStore keyStore, char[] password) throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
