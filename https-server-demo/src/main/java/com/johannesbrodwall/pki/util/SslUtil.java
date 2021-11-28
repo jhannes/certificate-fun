@@ -40,10 +40,10 @@ public class SslUtil {
         }
     }
 
-    public static KeyStore createKeyStore(PrivateKey privateKey, char[] password, X509Certificate certificate) throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
+    public static KeyStore createKeyStore(PrivateKey privateKey, char[] keyPassword, X509Certificate certificate) throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
         KeyStore keyStore = KeyStore.getInstance("pkcs12");
         keyStore.load(null, null);
-        keyStore.setKeyEntry(certificate.getSubjectDN().toString(), privateKey, password, new Certificate[] {certificate});
+        keyStore.setKeyEntry(certificate.getSubjectDN().toString(), privateKey, keyPassword, new Certificate[] {certificate});
         return keyStore;
     }
 
