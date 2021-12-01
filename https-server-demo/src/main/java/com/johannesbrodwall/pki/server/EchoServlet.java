@@ -6,7 +6,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 
-public class EchoServer extends HttpServlet {
+public class EchoServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -14,7 +14,7 @@ public class EchoServer extends HttpServlet {
         if (clientCertificate != null && clientCertificate.length > 0) {
             resp.getWriter().write("Hello " + clientCertificate[0].getSubjectDN());
         } else {
-            resp.getWriter().write("Hello there");
+            resp.getWriter().write("No client certificate");
         }
     }
 }

@@ -17,7 +17,7 @@ Initially all lines are commented out.
 
 ## Getting the browser to trust a new CA
 
-1. When I start `com.johannesbrodwall.pki.server.HttpsDemoServer`, it complains that it needs to know where to store
+1. When I start `com.johannesbrodwall.pki.server.CaHttpServer`, it complains that it needs to know where to store
    the information about the certificate authority. I specify `ca.keyStore` and `ca.keyStorePassword` for the storage 
    of the file with the key and certificate and I also give the CA a name, which is called the `ca.create.issuerDN`
    (Distinguished Name). Finally, I specify that it can be created if missing `ca.create.ifMissing` 

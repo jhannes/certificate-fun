@@ -19,7 +19,7 @@ public class DemoAppListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         ServletContext context = sce.getServletContext();
-        context.addServlet("echo", new EchoServer()).addMapping("/echo");
+        context.addServlet("echo", new EchoServlet()).addMapping("/echo");
 
         ServletRegistration.Dynamic caRegistration = context.addServlet("ca", new ApiServlet(caController));
         caRegistration.addMapping("/ca/*");

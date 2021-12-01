@@ -1,5 +1,8 @@
 package com.johannesbrodwall.pki.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -9,7 +12,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SslUtil {
+    private static final Logger logger = LoggerFactory.getLogger(SslUtil.class);
+
     @SuppressWarnings("RedundantThrows")
     public static List<X509Certificate> readCertificates(List<Path> certificates) throws GeneralSecurityException, IOException {
         return certificates.stream().map(ExceptionUtil.softenFunction(SslUtil::readCertificate)).collect(Collectors.toList());
@@ -67,6 +71,7 @@ public class SslUtil {
         try (OutputStream stream = Files.newOutputStream(path)) {
             keyStore.store(stream, password.toCharArray());
         }
+        logger.info("Saving keystore {}", path);
     }
 
     public static KeyManager[] createKeyManagers(KeyPair serverKeyPair, X509Certificate serverCertificate) throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, CertificateException, IOException {
@@ -124,10 +129,13 @@ public class SslUtil {
     }
 
     private static void writePemFile(Path path, byte[] encoded, String label) throws IOException {
-        Files.createDirectories(path.getParent());
+        if (path.getParent() != null) {
+            Files.createDirectories(path.getParent());
+        }
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             writer.write(writePemString(encoded, label));
         }
+        logger.info("Wrote {} to {}", label.toLowerCase(), path);
     }
 
     /**
