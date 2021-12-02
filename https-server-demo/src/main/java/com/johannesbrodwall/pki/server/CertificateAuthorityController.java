@@ -14,8 +14,12 @@ import sun.security.x509.CertificateExtensions;
 import sun.security.x509.X500Name;
 import sun.security.x509.X509Key;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.security.cert.X509Certificate;
@@ -27,6 +31,27 @@ import java.util.function.Consumer;
 public class CertificateAuthorityController {
 
     private CertificateAuthority certificateAuthority;
+
+    @POST("/privateKey")
+    @ContentBody(contentType = "application/x-pkcs12")
+    public byte[] issuePrivateKey(
+        @RequestParam("commonName") String commonName,
+        @HttpHeader("Content-Disposition") Consumer<String> setContentDisposition
+    ) throws GeneralSecurityException, IOException {
+        String subjectName = "CN=" + commonName;
+
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        KeyPair keyPair = generator.generateKeyPair();
+
+        X509Certificate certificate = certificateAuthority.issueClientCertificate(subjectName, ZonedDateTime.now(), keyPair.getPublic());
+        KeyStore keyStore = SslUtil.createKeyStore(keyPair.getPrivate(), null, certificate);
+        setContentDisposition.accept("attachment; filename=\"" + commonName + ".p12\"");
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        keyStore.store(buffer, "".toCharArray());
+        return buffer.toByteArray();
+    }
+
 
     @POST("/certificateRequest")
     @ContentBody(contentType = "text/html")

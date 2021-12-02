@@ -16,6 +16,7 @@ import javax.naming.ldap.LdapName;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -37,7 +38,7 @@ public class CaHttpServer {
     private final Server server = new Server();
     private final SslServerConnector secureConnector = new SslServerConnector(server);
     private final CertificateAuthorityController caController = new CertificateAuthorityController();
-    private final DemoAppListener demoApplication = new DemoAppListener(caController);
+    private final CaAppListener demoApplication = new CaAppListener(caController);
     private final WebAppContext application = new WebApplication("/webapp", "/ca", demoApplication);
 
     public static void main(String[] args) throws Exception {
@@ -69,8 +70,12 @@ public class CaHttpServer {
                 config.get("create.issuerDN"),
                 ZonedDateTime.now()
         );
-        storeKeyStore(certificateAuthority.getKeyStore(), Path.of(config.get("keystore")), config.getOrDefault("keystorePassword", ""));
-        writeCertificate(certificateAuthority.getCaCertificate(), Path.of("ca.crt"));
+        Path keystore = Path.of(config.get("keystore"));
+        if (keystore.getParent() != null) {
+            Files.createDirectories(keystore.getParent());
+        }
+        storeKeyStore(certificateAuthority.getKeyStore(), keystore, config.getOrDefault("keystorePassword", ""));
+        writeCertificate(certificateAuthority.getCaCertificate(), Path.of(keystore + ".crt"));
         return certificateAuthority;
     }
 
@@ -85,7 +90,7 @@ public class CaHttpServer {
         secureConnector.stop();
 
         caController.setCertificateAuthority(certificateAuthority);
-        InetSocketAddress address = config.getInetSocketAddress("address", 10443);
+        InetSocketAddress address = config.getInetSocketAddress("https.address", 10443);
 
         secureConnector.start(
                 address,

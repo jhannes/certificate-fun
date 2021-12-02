@@ -5,5 +5,8 @@ target/
 .idea/
 *.p12
 *.pfx
+*.key
 *.crt
 *.cer
+*.csr
+*.req

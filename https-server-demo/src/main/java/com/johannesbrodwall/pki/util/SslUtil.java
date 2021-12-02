@@ -3,6 +3,7 @@ package com.johannesbrodwall.pki.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -15,6 +16,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -26,6 +28,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +47,12 @@ public class SslUtil {
         try (InputStream input = Files.newInputStream(crtFile)) {
             return (X509Certificate) CertificateFactory.getInstance("X509").generateCertificate(input);
         }
+    }
+
+    public static PrivateKey readPrivateKey(Path keyFile) throws IOException, GeneralSecurityException {
+        return KeyFactory.getInstance("RSA").generatePrivate(
+                new PKCS8EncodedKeySpec(parsePemString(Files.readString(keyFile)))
+        );
     }
 
     public static KeyStore createKeyStore(PrivateKey privateKey, char[] keyPassword, X509Certificate certificate) throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
@@ -85,6 +94,10 @@ public class SslUtil {
     }
 
     public static TrustManager[] createTrustManagers(List<X509Certificate> certificates) throws GeneralSecurityException, IOException {
+        if (certificates.isEmpty()) {
+            return null;
+        }
+
         KeyStore trustStore = KeyStore.getInstance("pkcs12");
         trustStore.load(null, null);
         for (X509Certificate certificate : certificates) {
@@ -126,6 +139,10 @@ public class SslUtil {
 
     public static void writeCertificate(X509Certificate certificate, Path path) throws IOException, CertificateEncodingException {
         writePemFile(path, certificate.getEncoded(), "CERTIFICATE");
+    }
+
+    public static void writePrivateKey(PrivateKey privateKey, Path path) throws IOException {
+        writePemFile(path, new PKCS8EncodedKeySpec(privateKey.getEncoded()).getEncoded(), "PRIVATE KEY");
     }
 
     private static void writePemFile(Path path, byte[] encoded, String label) throws IOException {

@@ -8,11 +8,11 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletRegistration;
 
-public class DemoAppListener implements ServletContextListener {
+public class CaAppListener implements ServletContextListener {
 
     private final CertificateAuthorityController caController;
 
-    public DemoAppListener(CertificateAuthorityController certificateAuthorityController) {
+    public CaAppListener(CertificateAuthorityController certificateAuthorityController) {
         this.caController = certificateAuthorityController;
     }
 

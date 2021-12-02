@@ -3,27 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <title>JavaZone Https Demo</title>
+    <style>
+        body {
+            background: #55aa73;
+        }
+
+        main {
+            background-color: white;
+            padding: 0.5em 1em 1em 1em;
+            border-radius: 0.5em;
+            max-width: 40em;
+            margin: auto;
+        }
+    </style>
 </head>
 <body>
+<main>
 
-<h1>JavaZone Https Demo</h1>
+    <h1>JavaZone Https Demo</h1>
 
-<div><a href="echo">Show client certificate</a></div>
+    <div><a href="echo">Show client certificate</a></div>
 
-<h2>Issue a new certificate</h2>
+    <h2>Issue a new certificate</h2>
 
-<form action="ca/certificateRequest" method="post" enctype="multipart/form-data">
-    <div><input type="file" name="certificateRequestFile" accept=".req, .csr, .p10" required></div>
-    <button>Request certificate</button>
-</form>
+    <form action="ca/certificateRequest" method="post" enctype="multipart/form-data">
+        <div><input type="file" name="certificateRequestFile" accept=".req, .csr, .p10" required></div>
+        <button>Request certificate</button>
+    </form>
 
-<h2>Issue a new private key</h2>
+    <h2>Issue a new private key</h2>
 
-<form action="ca/privateKey" method="post">
-    <div><label>Common name: <input name="commonName" required /></label></div>
-    <button>Generate p12-file</button>
-</form>
+    <form action="ca/privateKey" method="post">
+        <div><label>Common name: <input name="commonName" required/></label></div>
+        <button>Generate p12-file</button>
+    </form>
 
 
+</main>
 </body>
 </html>

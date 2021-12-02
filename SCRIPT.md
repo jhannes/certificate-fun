@@ -26,7 +26,7 @@ Initially all lines are commented out.
 4. I can now go to https://localhost:8443, but I get the message that the CA is untrusted. In the browser, we can
    examine the Certification Path and see that the CA that issued this certificate is not trusted
 5. I can install the `ca.crt` file in my operating system as a Trusted Root Authority. The browser will now trust the
-   server, *but watch out **Chrome needs to be restarted** to refresh the Root CAs* (actually restarting the
+   server, ***but watch out** Chrome needs to be restarted to refresh the Root CAs* (actually restarting the
    incognito browser is enough)
 
 ## Host name validation
@@ -36,13 +36,23 @@ Initially all lines are commented out.
 2. If you go to https://localhost:8443 you will now get a warning from the browser that the hostname doesn't
    match the certificate
 3. If you go to https://javazone.ssldemo.local:8443 you probably will not get any luck. But update your hosts-file
-   (`C:\Windows\System32\drivers\etc\hosts` on Windows) and you will have more luck
+   (`C:\Windows\System32\drivers\etc\hosts` on Windows) and you will work better
 4. If you examine the certificate, you will see that the name java.ssldemo.local occurs both in the CN (common name)
    and as an extended certificate attribute
 
+## Creating a new server
+
+1. When I start `com.johannesbrodwall.pki.server.HttpsDemoServer`, this server currently doesn't have a host
+   certificate. It will start on http://localhost:10080, though
+2. I can update `https.address=server.local:10443`. Since it doesn't have a certificate, the server is still
+   not starting https. But it generates a .key with the private key and a .csr-file with the certification request.
+3. Upload the .csr file to https://javazone.ssldemo.local:8443 to generate a certificate, which should be placed
+   according to the configuration in `pkidemo.properties`
+4. The server will not start the https-port and you can access it at https://server.local:10443 
+
 ## Browser client validation
 
-1. If you change `ca.https.wantsClientAuth=true` and restart the browser (sorry), the server will prompt you for a
+1. If you change `https.wantsClientAuth=true` and restart the browser (sorry), the server will prompt you for a
    certificate. But it will not accept any certificate you already have because it requires the same CA as we
    just created. Press escape and you will still come to the server
 2. Go to "Show client certificate" and the server will respond that it has no client certificate
@@ -123,3 +133,13 @@ certificates in a database and can maintain privileges for computer users associ
 * [ ] Generate p12-file
 * [ ] Separate CA server which generates and stores host certificate in memory
 * [ ] Run https-server with .key-file + .crt-file
+
+
+## Summary
+
+1. Empty pkidemo.properties
+2. Get ca up and running
+3. Get https server up and running
+4. Get https client up and running
+
+
