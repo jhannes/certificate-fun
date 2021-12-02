@@ -1,6 +1,7 @@
-package com.johannesbrodwall.pki.server;
+package com.johannesbrodwall.pki.https.server;
 
-import com.johannesbrodwall.pki.util.SslServerConnector;
+import com.johannesbrodwall.pki.ca.server.CertificateAuthorityController;
+import com.johannesbrodwall.pki.infrastructure.SslServerConnector;
 import com.johannesbrodwall.pki.util.SslUtil;
 import com.johannesbrodwall.pki.util.SunCertificateUtil;
 import org.actioncontroller.config.ConfigMap;

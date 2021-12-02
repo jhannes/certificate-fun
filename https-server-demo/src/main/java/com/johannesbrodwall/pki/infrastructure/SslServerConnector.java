@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.util;
+package com.johannesbrodwall.pki.infrastructure;
 
 import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.ConnectionFactory;

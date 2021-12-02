@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.util;
+package com.johannesbrodwall.pki.infrastructure;
 
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.WebAppContext;

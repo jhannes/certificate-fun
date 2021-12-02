@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.server;
+package com.johannesbrodwall.pki.infrastructure;
 
 import com.johannesbrodwall.pki.util.ExceptionUtil;
 import org.actioncontroller.ApiControllerContext;

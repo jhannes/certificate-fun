@@ -42,7 +42,7 @@ Initially all lines are commented out.
 
 ## Creating a new server
 
-1. When I start `com.johannesbrodwall.pki.server.HttpsDemoServer`, this server currently doesn't have a host
+1. When I start `HttpsDemoServer`, this server currently doesn't have a host
    certificate. It will start on http://localhost:10080, though
 2. I can update `https.address=server.local:10443`. Since it doesn't have a certificate, the server is still
    not starting https. But it generates a .key with the private key and a .csr-file with the certification request.

@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.server;
+package com.johannesbrodwall.pki.https.server;
 
 import com.johannesbrodwall.pki.ca.CertificateAuthority;
 import com.johannesbrodwall.pki.ca.SunCertificateAuthority;

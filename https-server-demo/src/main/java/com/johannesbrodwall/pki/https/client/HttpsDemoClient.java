@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.client;
+package com.johannesbrodwall.pki.https.client;
 
 import org.actioncontroller.config.ConfigMap;
 import org.actioncontroller.config.ConfigObserver;

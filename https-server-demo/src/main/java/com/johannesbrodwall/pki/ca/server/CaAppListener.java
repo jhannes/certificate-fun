@@ -1,5 +1,6 @@
-package com.johannesbrodwall.pki.server;
+package com.johannesbrodwall.pki.ca.server;
 
+import com.johannesbrodwall.pki.https.server.EchoServlet;
 import org.actioncontroller.servlet.ApiServlet;
 
 import javax.servlet.MultipartConfigElement;

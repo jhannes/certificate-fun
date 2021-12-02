@@ -1,9 +1,9 @@
-package com.johannesbrodwall.pki.server;
+package com.johannesbrodwall.pki.ca.server;
 
 import com.johannesbrodwall.pki.ca.SunCertificateAuthority;
-import com.johannesbrodwall.pki.util.SslServerConnector;
+import com.johannesbrodwall.pki.infrastructure.SslServerConnector;
 import com.johannesbrodwall.pki.util.SslUtil;
-import com.johannesbrodwall.pki.util.WebApplication;
+import com.johannesbrodwall.pki.infrastructure.WebApplication;
 import org.actioncontroller.config.ConfigMap;
 import org.actioncontroller.config.ConfigObserver;
 import org.eclipse.jetty.server.Server;

@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.server;
+package com.johannesbrodwall.pki.https.server;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
