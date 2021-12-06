@@ -12,9 +12,11 @@ public class EchoServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         X509Certificate[] clientCertificate = (X509Certificate[]) req.getAttribute("javax.servlet.request.X509Certificate");
         if (clientCertificate != null && clientCertificate.length > 0) {
-            resp.getWriter().write("Hello " + clientCertificate[0].getSubjectDN());
+            resp.getWriter().write("Client certificate " + clientCertificate[0].getSubjectDN());
+        } else if (req.getUserPrincipal() != null) {
+            resp.getWriter().write("Remote user " + req.getUserPrincipal().getName());
         } else {
-            resp.getWriter().write("No client certificate");
+            resp.getWriter().write("No remote user");
         }
     }
 }

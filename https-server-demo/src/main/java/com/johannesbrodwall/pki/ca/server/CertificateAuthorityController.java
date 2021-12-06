@@ -1,14 +1,15 @@
 package com.johannesbrodwall.pki.ca.server;
 
 import com.johannesbrodwall.pki.ca.CertificateAuthority;
-import com.johannesbrodwall.pki.ca.SunCertificateAuthority;
 import com.johannesbrodwall.pki.infrastructure.Multipart;
 import com.johannesbrodwall.pki.util.SslUtil;
 import com.johannesbrodwall.pki.util.SunCertificateUtil;
 import org.actioncontroller.actions.POST;
+import org.actioncontroller.exceptions.HttpRequestException;
 import org.actioncontroller.values.ContentBody;
 import org.actioncontroller.values.HttpHeader;
 import org.actioncontroller.values.RequestParam;
+import org.actioncontroller.values.UserPrincipal;
 import sun.security.pkcs10.PKCS10;
 import sun.security.util.DerValue;
 import sun.security.x509.CertificateExtensions;
@@ -36,10 +37,27 @@ public class CertificateAuthorityController {
     @POST("/privateKey")
     @ContentBody(contentType = "application/x-pkcs12")
     public byte[] issuePrivateKey(
-        @RequestParam("commonName") String commonName,
-        @HttpHeader("Content-Disposition") Consumer<String> setContentDisposition
+            @UserPrincipal Optional<OpenIdAuthenticationFilter.OpenIdPrincipal> userPrincipal,
+            @RequestParam("commonName") Optional<String> commonName,
+            @HttpHeader("Content-Disposition") Consumer<String> setContentDisposition
     ) throws GeneralSecurityException, IOException {
-        String subjectName = "CN=" + commonName;
+        String subjectName;
+        String name;
+        if (userPrincipal.isPresent()) {
+            String email = userPrincipal.get().getUserinfo().requiredString("unique_name");
+            name = userPrincipal.get().getUserinfo().requiredString("name");
+            String domain = email.substring(email.indexOf('@') + 1);
+            subjectName = "CN=" + name + ",O=" + domain + ",EMAIL=" + email;
+            if (commonName.isPresent()) {
+                subjectName += ",CN=" + commonName.get();
+            }
+        } else if (commonName.isPresent()) {
+            name = commonName.get();
+            subjectName = "CN=" + name;
+        } else {
+            throw new HttpRequestException("Missing user");
+        }
+
 
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
@@ -47,7 +65,7 @@ public class CertificateAuthorityController {
 
         X509Certificate certificate = certificateAuthority.issueClientCertificate(subjectName, ZonedDateTime.now(), keyPair.getPublic());
         KeyStore keyStore = SslUtil.createKeyStore(keyPair.getPrivate(), null, certificate);
-        setContentDisposition.accept("attachment; filename=\"" + commonName + ".p12\"");
+        setContentDisposition.accept("attachment; filename=\"" + name + ".p12\"");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         keyStore.store(buffer, "".toCharArray());
         return buffer.toByteArray();
@@ -88,12 +106,12 @@ public class CertificateAuthorityController {
                 extensionsInPemCsr.map(SslUtil::parsePemString)
         );
 
-        String filename = ((X500Name)certificate.getSubjectDN()).getCommonName() + ".crt";
+        String filename = ((X500Name) certificate.getSubjectDN()).getCommonName() + ".crt";
         setContentDisposition.accept("attachment; filename=\"" + filename + "\"");
         return SslUtil.writePemString(certificate.getEncoded(), "CERTIFICATE");
     }
 
-    public void setCertificateAuthority(SunCertificateAuthority certificateAuthority) {
+    public void setCertificateAuthority(CertificateAuthority certificateAuthority) {
         this.certificateAuthority = certificateAuthority;
     }
 }

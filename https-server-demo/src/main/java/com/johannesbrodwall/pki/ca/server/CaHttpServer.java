@@ -37,16 +37,20 @@ public class CaHttpServer {
 
     private final Server server = new Server();
     private final SslServerConnector secureConnector = new SslServerConnector(server);
-    private final CertificateAuthorityController caController = new CertificateAuthorityController();
-    private final CaAppListener demoApplication = new CaAppListener(caController);
-    private final WebAppContext application = new WebApplication("/webapp", "/ca", demoApplication);
+    private final CaAppListener caApplication = new CaAppListener();
+    private final WebAppContext application = new WebApplication("/webapp", "/ca", caApplication);
 
     public static void main(String[] args) throws Exception {
         CaHttpServer server = new CaHttpServer();
         new ConfigObserver("pkidemo")
+                .onPrefixedValue("ca.authentication", server::setAuthentication)
                 .onPrefixedValue("ca", server::setCaConfiguration);
 
         server.start();
+    }
+
+    private void setAuthentication(ConfigMap config) {
+        caApplication.setAuthentication(config);
     }
 
     private void setCaConfiguration(ConfigMap config) throws Exception {
@@ -75,8 +79,13 @@ public class CaHttpServer {
             Files.createDirectories(keystore.getParent());
         }
         storeKeyStore(certificateAuthority.getKeyStore(), keystore, config.getOrDefault("keystorePassword", ""));
-        writeCertificate(certificateAuthority.getCaCertificate(), Path.of(keystore + ".crt"));
+        writeCertificate(certificateAuthority.getCaCertificate(), Path.of(stripExtension(keystore.toString()) + ".crt"));
         return certificateAuthority;
+    }
+
+    private String stripExtension(String path) {
+        int lastPeriod = path.lastIndexOf('.');
+        return lastPeriod > 0 ? path.substring(0, lastPeriod) : path;
     }
 
     private SunCertificateAuthority loadCertificateAuthority(ConfigMap config, Path keyStoreFile) throws GeneralSecurityException, IOException {
@@ -89,7 +98,7 @@ public class CaHttpServer {
     private void setCertificateAuthority(SunCertificateAuthority certificateAuthority, ConfigMap config) throws Exception {
         secureConnector.stop();
 
-        caController.setCertificateAuthority(certificateAuthority);
+        caApplication.setCertificateAuthority(certificateAuthority);
         InetSocketAddress address = config.getInetSocketAddress("https.address", 10443);
 
         secureConnector.start(

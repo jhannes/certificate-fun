@@ -45,7 +45,7 @@ class HttpsDemoServerTest {
 
     @Test
     void shouldEchoClientCertificate() throws Exception {
-        InetSocketAddress httpsAddress = new InetSocketAddress("javazone.ssldemo.local", 0);
+        InetSocketAddress httpsAddress = new InetSocketAddress("app.javazone.local", 0);
 
         Path directory = Path.of("src/test/resources/certificates/");
         X509Certificate caCertificate = readCertificate(directory.resolve("ca.crt"));
@@ -68,7 +68,7 @@ class HttpsDemoServerTest {
         assertThat(connection.getResponseCode()).isEqualTo(200);
         assertThat(firstCertificate(connection.getServerCertificates()).getSubjectDN())
                 .isEqualTo(serverCertificate.getSubjectDN());
-        assertThat(connection.getInputStream()).hasContent("Hello " + clientCertificate.getSubjectDN());
+        assertThat(connection.getInputStream()).hasContent("Client certificate " + clientCertificate.getSubjectDN());
     }
 
     @Test
@@ -80,7 +80,7 @@ class HttpsDemoServerTest {
         ca = new SunCertificateAuthority(loadKeyStore(directory.resolve("ca.p12"), ""), Period.ofDays(1));
 
         String clientSubjectDN = "CN=JavaZone Demo Cert" + UUID.randomUUID() + ", OU=dev, O=" + org;
-        InetSocketAddress httpsAddress = new InetSocketAddress("javazone.ssldemo.local", 0);
+        InetSocketAddress httpsAddress = new InetSocketAddress("app.javazone.local", 0);
 
         X509Certificate caCertificate = ca.getCaCertificate();
         writeCertificate(caCertificate, directory.resolve("ca.crt"));
@@ -112,11 +112,11 @@ class HttpsDemoServerTest {
         server.setHttpsConfiguration(httpsAddress, createSslContext(serverKeyStore, null, List.of(caCertificate)));
         server.start();
 
-        HttpsURLConnection connection = (HttpsURLConnection) new URL(server.getURL(), "/demo/echo").openConnection();
+        HttpsURLConnection connection = (HttpsURLConnection) new URL(server.getURL(), "/echo").openConnection();
         connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
 
         assertThat(connection.getResponseCode()).isEqualTo(200);
-        assertThat(connection.getInputStream()).hasContent("Hello " + clientSubjectDN);
+        assertThat(connection.getInputStream()).hasContent("Client certificate " + clientSubjectDN);
     }
 
     private X509Certificate firstCertificate(Certificate[] serverCertificates) {

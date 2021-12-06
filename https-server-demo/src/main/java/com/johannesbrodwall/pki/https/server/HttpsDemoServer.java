@@ -35,12 +35,11 @@ public class HttpsDemoServer {
     private final Server server = new Server();
     private final SslServerConnector secureConnector = new SslServerConnector(server);
     private final ServerConnector connector = new ServerConnector(server);
-    private final CertificateAuthorityController caController = new CertificateAuthorityController();
 
     public static void main(String[] args) throws Exception {
         HttpsDemoServer server = new HttpsDemoServer();
         new ConfigObserver("pkidemo")
-                .onInetSocketAddress("http.address", 10080, server::setHttpAddress)
+                .onInetSocketAddress("http.address", 8080, server::setHttpAddress)
                 .onPrefixedValue("https", server::setHttpsConfiguration);
         server.start();
     }

@@ -5,7 +5,8 @@
     <title>JavaZone Https Demo</title>
     <style>
         body {
-            background: #55aa73;
+            background: #cf022b;
+            color: #1d1d1d;
         }
 
         main {
@@ -15,14 +16,23 @@
             max-width: 40em;
             margin: auto;
         }
+
+        .logo {
+            height: 4em;
+            display: block;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
 <main>
 
-    <h1>JavaZone Https Demo</h1>
+    <h1>The JavaZone Certificate Authority</h1>
+    <h2>by Johannes Brodwall</h2>
 
-    <div><a href="echo">Show client certificate</a></div>
+    <div><a href="login">Log in</a></div>
+    <div><a href="login/endsession">Log out</a></div>
+    <div><a href="userInfo">Show remote user</a></div>
 
     <h2>Issue a new certificate</h2>
 
@@ -34,11 +44,11 @@
     <h2>Issue a new private key</h2>
 
     <form action="ca/privateKey" method="post">
-        <div><label>Common name: <input name="commonName" required/></label></div>
+        <div><label>Common name: <input name="commonName" /></label></div>
         <button>Generate p12-file</button>
     </form>
 
-
+    <img src="logo-with-text.png" class="logo" alt="Sopra Steria logo" />
 </main>
 </body>
 </html>
