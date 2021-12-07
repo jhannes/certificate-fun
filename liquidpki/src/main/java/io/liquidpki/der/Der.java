@@ -184,7 +184,7 @@ public interface Der {
         }
     }
 
-    // Eks 1.28.10.1 
+    // Eks 1.28.10.1
     class OBJECT_IDENTIFIER extends DerValue {
         public OBJECT_IDENTIFIER(DerValue derValue) {
             super(derValue);
@@ -306,7 +306,7 @@ public interface Der {
         }
 
         public UTCTime(ZonedDateTime dateTime) {
-            super(0x17, dateTime.format(DateTimeFormatter.ofPattern("yyMMddHHmmssX")).getBytes());
+            super(0x17, dateTime.format(DateTimeFormatter.ofPattern("yyMMddHHmmssXX")).getBytes());
         }
 
         @Override
@@ -317,7 +317,7 @@ public interface Der {
         public ZonedDateTime getDateTime() {
             String value = stringValue(Charset.defaultCharset());
             String century = value.charAt(0) < '5' ? "20" : "19";
-            return ZonedDateTime.parse(century + value, DateTimeFormatter.ofPattern("yyyyMMddHHmmssX"));
+            return ZonedDateTime.parse(century + value, DateTimeFormatter.ofPattern("yyyyMMddHHmmssXX"));
         }
     }
 

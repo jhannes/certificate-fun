@@ -1,7 +1,7 @@
 package io.liquidpki.pkcs10;
 
 import io.liquidpki.common.Extension;
-import io.liquidpki.common.X501Name;
+import io.liquidpki.common.X500Name;
 import io.liquidpki.der.Der;
 import org.junit.jupiter.api.Test;
 
@@ -22,11 +22,10 @@ class CertificationRequestTest {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        CertificationRequest request = new CertificationRequest()
-                .info(new CertificationRequest.CertificationRequestInfo()
-                        .subject(new X501Name().cn("www.example.net").o("Example Company Inc"))
-                        .addExtension(new Extension.SANExtensionType().dnsName("www.example.net"))
-                        .publicKey(publicKey))
+        CertificationRequest request = new CertificationRequestInfo()
+                .subject(new X500Name().cn("www.example.net").o("Example Company Inc"))
+                .addExtension(new Extension.SANExtensionType().dnsName("www.example.net"))
+                .publicKey(publicKey)
                 .signWithKey(keyPair.getPrivate());
 
         System.out.println(Base64.getEncoder().encodeToString(request.toDer().toByteArray()));
@@ -39,14 +38,13 @@ class CertificationRequestTest {
     void shouldVerifyCertificationRequestSignature() throws GeneralSecurityException {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        CertificationRequest request = new CertificationRequest()
-                .info(new CertificationRequest.CertificationRequestInfo()
-                        .subject(new X501Name().cn("www.example.net").o("Example Company Inc"))
-                        .addExtension(new Extension.SANExtensionType().dnsName("www.example.net"))
-                        .publicKey(publicKey))
+        CertificationRequest request = new CertificationRequestInfo()
+                .subject(new X500Name().cn("www.example.net").o("Example Company Inc"))
+                .addExtension(new Extension.SANExtensionType().dnsName("www.example.net"))
+                .publicKey(publicKey)
                 .signWithKey(keyPair.getPrivate());
 
-        Signature signature = Signature.getInstance("SHA256withRSA");
+        Signature signature = Signature.getInstance("SHA512withRSA");
         signature.initVerify(request.certificationRequestInfo.publicKey());
         signature.update(request.certificationRequestInfo.toDer().toByteArray());
         assertThat(signature.verify(request.signature.bytesValue())).isTrue();
@@ -57,12 +55,12 @@ class CertificationRequestTest {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        CertificationRequest.CertificationRequestInfo request = new CertificationRequest.CertificationRequestInfo()
+        CertificationRequestInfo request = new CertificationRequestInfo()
                 .version(0)
-                .subject(new X501Name().cn("www.example.net").o("Example Company Inc"))
+                .subject(new X500Name().cn("www.example.net").o("Example Company Inc"))
                 .publicKey(publicKey);
 
-        CertificationRequest.CertificationRequestInfo restored = new CertificationRequest.CertificationRequestInfo(
+        CertificationRequestInfo restored = new CertificationRequestInfo(
                 Der.parse(request.toDer().toByteArray())
         );
 
@@ -76,12 +74,12 @@ class CertificationRequestTest {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        CertificationRequest.CertificationRequestInfo request = new CertificationRequest.CertificationRequestInfo()
-                .subject(new X501Name().cn("Example Company Inc"))
+        CertificationRequestInfo request = new CertificationRequestInfo()
+                .subject(new X500Name().cn("Example Company Inc"))
                 .publicKey(publicKey)
                 .addExtension(new Extension.SANExtensionType().dnsName("www.example.net"));
 
-        CertificationRequest.CertificationRequestInfo restored = new CertificationRequest.CertificationRequestInfo(
+        CertificationRequestInfo restored = new CertificationRequestInfo(
                 Der.parse(request.toDer().toByteArray())
         );
 

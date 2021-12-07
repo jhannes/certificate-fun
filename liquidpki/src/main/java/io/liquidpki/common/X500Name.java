@@ -7,12 +7,13 @@ import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class X501Name {
+public class X500Name {
     private static final Map<String, Der.OBJECT_IDENTIFIER> RDN_TYPES = Map.of(
             "OU", new Der.OBJECT_IDENTIFIER("2.5.4.11"),
             "O", new Der.OBJECT_IDENTIFIER("2.5.4.10"),
@@ -26,7 +27,7 @@ public class X501Name {
     private Der der;
     protected List<AttributeTypeAndValue> rdnSequence = new ArrayList<>();
 
-    public X501Name(Der der) {
+    public X500Name(Der der) {
         this.der = der;
         Iterator<Der> iterator = ((Der.SEQUENCE) der).iterator();
         while (iterator.hasNext()) {
@@ -35,16 +36,16 @@ public class X501Name {
         }
     }
 
-    public X501Name() {
+    public X500Name() {
 
     }
 
-    public X501Name(String distingishedName) {
+    public X500Name(String distingishedName) {
         try {
             LdapName ldapName = new LdapName(distingishedName);
             List<Rdn> rdns = ldapName.getRdns();
-            for (int i = rdns.size()-1; i >= 0; i--) {
-                rdn(rdns.get(i));
+            for (Rdn rdn : rdns) {
+                rdn(rdn);
             }
         } catch (InvalidNameException e) {
             throw new IllegalArgumentException(e.getMessage());
@@ -64,15 +65,15 @@ public class X501Name {
         rdnSequence.forEach(a -> a.dump(out, indent + "  "));
     }
 
-    public X501Name cn(String commonName) {
+    public X500Name cn(String commonName) {
         return attribute("2.5.4.3", commonName);
     }
 
-    public X501Name o(String organization) {
+    public X500Name o(String organization) {
         return attribute("2.5.4.10", organization);
     }
 
-    public X501Name ou(String organizationUnit) {
+    public X500Name ou(String organizationUnit) {
         return attribute("2.5.4.11", organizationUnit);
     }
 
@@ -97,7 +98,7 @@ public class X501Name {
     }
 
 
-    public X501Name attribute(String oid, String value) {
+    public X500Name attribute(String oid, String value) {
         rdnSequence.add(new AttributeTypeAndValue(oid, value));
         return this;
     }
@@ -110,6 +111,8 @@ public class X501Name {
     }
 
     public String print() {
+        List<AttributeTypeAndValue> rdnSequence = new ArrayList<>(this.rdnSequence);
+        Collections.reverse(rdnSequence);
         return rdnSequence.stream()
                 .map(entry -> RDN_TYPE_NAMES.get(entry.type) + "=" + entry.value.stringValue())
                 .collect(Collectors.joining(","));

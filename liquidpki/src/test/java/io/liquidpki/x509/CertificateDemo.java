@@ -1,27 +1,23 @@
 package io.liquidpki.x509;
 
 import io.liquidpki.common.Extension;
-import io.liquidpki.common.X501Name;
+import io.liquidpki.common.X500Name;
 
-import java.io.FileInputStream;
-import java.io.FileReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.interfaces.RSAPublicKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.cert.CertificateFactory;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
 
 public class CertificateDemo {
     public static void main(String[] args) throws Exception {
         generateSelfSignedCertificate();
     }
 
-    private static void generateSelfSignedCertificate() throws IOException, GeneralSecurityException {
+    private static void generateSelfSignedCertificate() throws GeneralSecurityException {
+        /*
         Map<String, String> props = new HashMap<>();
         Properties properties = new Properties();
         properties.load(new FileReader("local-self-signed.properties"));
@@ -32,17 +28,23 @@ public class CertificateDemo {
         Key key = keyStore.getKey(props.get("keyStore.keyAlias"), props.get("keyStore.keyPassword").toCharArray());
         RSAPublicKey publicKey = (RSAPublicKey) keyStore.getCertificate(props.get("keyStore.keyAlias")).getPublicKey();
 
-        X509Certificate certificate = new X509Certificate()
-                .tbsCertificate(new X509Certificate.TbsCertificate()
-                        .version(2)
-                        .serialNumber(6062104602511039190L)
-                        .subjectName(new X501Name().cn(props.get("cn")).o(props.get("o")))
-                        .issuerName(new X501Name().cn(props.get("cn")).o(props.get("o")))
-                        .publicKey(publicKey)
-                        .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true))
-                )
-                .signWithKey((PrivateKey) key, "SHA256withRSA");
+         */
 
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        KeyPair keyPair = generator.generateKeyPair();
+
+
+        SignedCertificate certificate = new CertificateInfo()
+                .version(2)
+                .serialNumber(6062104602511039190L)
+                .subjectName(new X500Name().cn("Common Name").o("ORG"))
+                .issuerName(new X500Name().cn("Common Name").o("ORG"))
+                .publicKey(keyPair.getPublic())
+                .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true))
+                .signWithKey(keyPair.getPrivate(), "SHA256withRSA");
+
+        CertificateFactory.getInstance("X509").generateCertificate(new ByteArrayInputStream(certificate.toDer().toByteArray()));
         System.out.println(Base64.getEncoder().encodeToString(certificate.toDer().toByteArray()));
     }
 }

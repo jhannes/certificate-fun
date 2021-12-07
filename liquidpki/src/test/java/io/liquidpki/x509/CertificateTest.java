@@ -1,7 +1,7 @@
 package io.liquidpki.x509;
 
 import io.liquidpki.common.Extension;
-import io.liquidpki.common.X501Name;
+import io.liquidpki.common.X500Name;
 import io.liquidpki.der.Der;
 import io.liquidpki.der.Oid;
 import org.junit.jupiter.api.Test;
@@ -28,11 +28,11 @@ class CertificateTest {
 
     @Test
     void shouldSerializeX501Name() {
-        X501Name name = new X501Name().cn("Issuer name").ou("Organization Unit").o("Example Org");
-        X501Name restored = new X501Name(name.toDer());
+        X500Name name = new X500Name().cn("Issuer name").ou("Organization Unit").o("Example Org");
+        X500Name restored = new X500Name(name.toDer());
         assertThat(restored.ou()).isEqualTo("Organization Unit");
 
-        X501Name deserialized = new X501Name(Der.parse(name.toDer().toByteArray()));
+        X500Name deserialized = new X500Name(Der.parse(name.toDer().toByteArray()));
         assertThat(deserialized.o()).isEqualTo("Example Org");
 
         assertThat(Der.toHex(name.toDer().toByteArray()))
@@ -42,20 +42,20 @@ class CertificateTest {
 
     @Test
     void shouldParseAndOutputX501Name() {
-        X501Name name = new X501Name("CN=Certificate Corp, O=no, OU=Test");
+        X500Name name = new X500Name("CN=Certificate Corp, O=no, OU=Test");
         assertThat(name.print()).isEqualTo("CN=Certificate Corp,O=no,OU=Test");
     }
 
     @Test
     void shouldThrowOnMisformattedX501Name() {
-        assertThatThrownBy(() -> new X501Name("Not a DN"))
+        assertThatThrownBy(() -> new X500Name("Not a DN"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid name: Not a DN");
     }
 
     @Test
     void shouldThrowOnUnknownAttributeName() {
-        assertThatThrownBy(() -> new X501Name("ZZ=invalid type"))
+        assertThatThrownBy(() -> new X500Name("ZZ=invalid type"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unknown DN type name ZZ");
     }
@@ -63,18 +63,18 @@ class CertificateTest {
     @Test
     void shouldSerializedUnsignedCertificate() throws GeneralSecurityException {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-        X509Certificate.TbsCertificate certificate = new X509Certificate.TbsCertificate()
+        CertificateInfo certificate = new CertificateInfo()
                 .version(2)
                 .signature(Oid.getSignatureAlgorithm(keyPair.getPrivate().getAlgorithm()))
-                .issuerName(new X501Name().cn("Issuer name").ou("Organization Unit"))
-                .subjectName(new X501Name().cn("Subject name").ou("Organization Unit"))
+                .issuerName(new X500Name().cn("Issuer name").ou("Organization Unit"))
+                .subjectName(new X500Name().cn("Subject name").ou("Organization Unit"))
                 .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
-                .publicKey((RSAPublicKey) keyPair.getPublic())
+                .publicKey(keyPair.getPublic())
                 .addExtension(new Extension.BasicConstraintExtensionType().ca(true))
                 .addExtension(new Extension.KeyUsageExtensionType().keyCertSign(true))
                 .addExtension(new Extension.SANExtensionType().dnsName("www.example.com").ipAddress("127.0.0.1"));
 
-        X509Certificate.TbsCertificate restored = new X509Certificate.TbsCertificate(Der.parse(certificate.toDer().toByteArray()));
+        CertificateInfo restored = new CertificateInfo(Der.parse(certificate.toDer().toByteArray()));
 
         assertThat(restored.version()).isEqualTo(2);
         assertThat(restored.issuer.ou()).isEqualTo("Organization Unit");
@@ -91,22 +91,20 @@ class CertificateTest {
     @Test
     void shouldSerializeCertificate() throws GeneralSecurityException {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-        X509Certificate certificate = new X509Certificate()
-                .tbsCertificate(new X509Certificate.TbsCertificate()
-                        .version(2)
-                        .serialNumber(6062104602511039190L)
-                        .issuerName(new X501Name().cn("Common Name").o("Test Organization"))
-                        .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
-                        .subjectName(new X501Name().cn("Common Name").o("Test Organization"))
-                        .publicKey((RSAPublicKey) keyPair.getPublic())
-                        .addExtension(new Extension.SANExtensionType().dnsName("www.example.com"))
-                        .addExtension(new Extension.KeyUsageExtensionType().keyEncipherment(true)))
-                .signatureAlgorithm(keyPair.getPrivate())
+        SignedCertificate certificate = new CertificateInfo()
+                .version(2)
+                .serialNumber(6062104602511039190L)
+                .issuerName(new X500Name().cn("Common Name").o("Test Organization"))
+                .validity(ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(200))
+                .subjectName(new X500Name().cn("Common Name").o("Test Organization"))
+                .publicKey(keyPair.getPublic())
+                .addExtension(new Extension.SANExtensionType().dnsName("www.example.com"))
+                .addExtension(new Extension.KeyUsageExtensionType().keyEncipherment(true))
                 .signWithKey(keyPair.getPrivate(), "SHA256withRSA");
 
         Der der = serializeAndDeserialize(certificate.toDer());
 
-        X509Certificate clone = new X509Certificate(der);
+        SignedCertificate clone = new SignedCertificate(der);
         assertThat(clone.tbsCertificate.issuer.cn()).isEqualTo(certificate.tbsCertificate.issuer.cn());
         assertThat(clone.tbsCertificate.signature.getAlgorithmOid()).isEqualTo(certificate.tbsCertificate.signature.getAlgorithmOid());
         assertThat(clone.signatureValue.bytesValue()).isEqualTo(certificate.signatureValue.bytesValue());
@@ -115,12 +113,10 @@ class CertificateTest {
     @Test
     void shouldVerifyCertificateSignature() throws GeneralSecurityException {
         KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-        X509Certificate certificate = new X509Certificate()
-                .tbsCertificate(new X509Certificate.TbsCertificate()
-                        .issuerName(new X501Name().cn("Common Name").o("Test Organization"))
-                        .subjectName(new X501Name().cn("www.example.com").o("Test Org"))
-                        .publicKey((RSAPublicKey) keyPair.getPublic()))
-                .signatureAlgorithm(keyPair.getPrivate())
+        SignedCertificate certificate = new CertificateInfo()
+                .issuerName(new X500Name().cn("Common Name").o("Test Organization"))
+                .subjectName(new X500Name().cn("www.example.com").o("Test Org"))
+                .publicKey(keyPair.getPublic())
                 .signWithKey(keyPair.getPrivate(), "SHA512withRSA");
 
         Signature signature = Signature.getInstance("SHA512withRSA");
@@ -133,8 +129,8 @@ class CertificateTest {
     void shouldSerializeValidity() {
         ZonedDateTime dateTime = ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS).withZoneSameInstant(ZoneId.of("UTC"));
 
-        X509Certificate.Validity validity = new X509Certificate.Validity(dateTime.minusWeeks(1), dateTime.plusYears(10));
-        X509Certificate.Validity restored = new X509Certificate.Validity(serializeAndDeserialize(validity.toDer()));
+        CertificateInfo.Validity validity = new CertificateInfo.Validity(dateTime.minusWeeks(1), dateTime.plusYears(10));
+        CertificateInfo.Validity restored = new CertificateInfo.Validity(serializeAndDeserialize(validity.toDer()));
 
         assertThat(restored.getNotBefore()).isEqualTo(dateTime.minusWeeks(1));
         assertThat(restored.getNotAfter()).isEqualTo(dateTime.plusYears(10));
@@ -159,8 +155,8 @@ class CertificateTest {
 
     @Test
     void shouldSerializeName() {
-        X501Name name = new X501Name().cn("My Common Name").o("My Organization");
-        X501Name clone = new X501Name(serializeAndDeserialize(name.toDer()));
+        X500Name name = new X500Name().cn("My Common Name").o("My Organization");
+        X500Name clone = new X500Name(serializeAndDeserialize(name.toDer()));
 
         assertThat(clone.cn()).isEqualTo("My Common Name");
         assertThat(clone.o()).isEqualTo("My Organization");
@@ -172,7 +168,7 @@ class CertificateTest {
         Objects.requireNonNull(getClass().getResourceAsStream("/github-cert.crt")).transferTo(buffer);
         List<byte[]> bytes = readPemObjects(buffer);
 
-        X509Certificate certificate = new X509Certificate(bytes.get(0));
+        SignedCertificate certificate = new SignedCertificate(bytes.get(0));
         certificate.dump(System.out, true);
         assertThat(certificate.tbsCertificate.subject.o()).isEqualTo("GitHub, Inc.");
         assertThat(certificate.tbsCertificate.extensions.sanExtension().dnsName()).isEqualTo("github.com");
