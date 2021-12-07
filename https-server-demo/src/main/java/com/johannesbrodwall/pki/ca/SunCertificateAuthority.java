@@ -13,6 +13,7 @@ import sun.security.x509.SubjectAlternativeNameExtension;
 import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
@@ -25,6 +26,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Period;
 import java.time.ZonedDateTime;
@@ -52,7 +54,8 @@ public class SunCertificateAuthority implements CertificateAuthority {
         BasicConstraintsExtension basicConstraintsExtension = new BasicConstraintsExtension(isCertificateAuthority, certificationPathDepth);
         extensions.set(BasicConstraintsExtension.NAME, basicConstraintsExtension);
 
-        this.caCertificate = sign(SunCertificateUtil.createX509Cert(new X500Name(issuer), new X500Name(issuer), validFrom, validFrom.plus(validity), Optional.of(extensions), caKeyPair.getPublic()));
+        X509CertImpl certificate = sign(SunCertificateUtil.createX509Cert(new X500Name(issuer), new X500Name(issuer), validFrom, validFrom.plus(validity), Optional.of(extensions), caKeyPair.getPublic()));
+        this.caCertificate = (X509Certificate) CertificateFactory.getInstance("X509").generateCertificate(new ByteArrayInputStream(certificate.getEncoded()));
     }
 
     public SunCertificateAuthority(KeyStore keyStore, Period validityPeriod) throws GeneralSecurityException {

@@ -26,17 +26,13 @@ public class SocketServer {
         this.port = port;
     }
 
-    public void run() {
-        try {
-            runServer();
-        } catch (IOException e) {
-            logger.error("An error occurred. Shutting down", e);
-        }
-    }
-
-    private void runServer() throws IOException {
+    public void start() throws IOException {
         serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(port);
         serverSocket.setWantClientAuth(true);
+        new Thread(this::runServer).start();
+    }
+
+    private void runServer() {
         while (!Thread.interrupted()) {
             logger.info("Waiting for connections: {}", serverSocket.getLocalSocketAddress());
             try (Socket clientSocket = serverSocket.accept()) {
