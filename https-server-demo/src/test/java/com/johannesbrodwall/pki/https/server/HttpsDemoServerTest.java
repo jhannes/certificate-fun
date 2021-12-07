@@ -9,9 +9,11 @@ import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -89,7 +91,7 @@ class HttpsDemoServerTest {
         KeyPair serverKeyPair = generator.generateKeyPair();
         String serverSubjectDN = "CN=" + httpsAddress.getHostName() + ",O=" + org;
 
-        byte[] serverCsr = SunCertificateUtil.createHostnameCsr(serverKeyPair, serverSubjectDN, httpsAddress.getHostName());
+        byte[] serverCsr = createHostnameCsr(httpsAddress, serverKeyPair, serverSubjectDN);
         writeCertificationRequest(serverCsr, directory.resolve("server.csr"));
 
         X509Certificate serverCertificate = ca.issueCertificate(serverCsr, ZonedDateTime.now());
@@ -99,7 +101,7 @@ class HttpsDemoServerTest {
         serverKeyStore = loadKeyStore(directory.resolve("server.p12"), "");
 
         KeyPair clientKeyPair = generator.generateKeyPair();
-        byte[] clientCsr = SunCertificateUtil.createCsr(clientKeyPair, clientSubjectDN);
+        byte[] clientCsr = createCsr(clientSubjectDN, clientKeyPair);
         writeCertificationRequest(clientCsr, directory.resolve("client.csr"));
 
         X509Certificate clientCertificate = ca.issueCertificate(clientCsr, ZonedDateTime.now());
@@ -117,6 +119,23 @@ class HttpsDemoServerTest {
 
         assertThat(connection.getResponseCode()).isEqualTo(200);
         assertThat(connection.getInputStream()).hasContent("Client certificate " + clientSubjectDN);
+    }
+
+    private byte[] createCsr(String clientSubjectDN, KeyPair clientKeyPair) throws GeneralSecurityException, IOException {
+//        return new CertificationRequestInfo()
+//                .publicKey(clientKeyPair.getPublic())
+//                .subject(new X500Name(clientSubjectDN))
+//                .signWithKey(clientKeyPair.getPrivate()).toDer().toByteArray();
+        return SunCertificateUtil.createCsr(clientKeyPair, clientSubjectDN);
+    }
+
+    private byte[] createHostnameCsr(InetSocketAddress httpsAddress, KeyPair serverKeyPair, String serverSubjectDN) throws GeneralSecurityException, IOException {
+//        return new CertificationRequestInfo()
+//                .publicKey(serverKeyPair.getPublic())
+//                .subject(new X500Name(serverSubjectDN))
+//                .addExtension(new Extension.SANExtensionType().dnsName(httpsAddress.getHostName()))
+//                .signWithKey(serverKeyPair.getPrivate()).toDer().toByteArray();
+        return SunCertificateUtil.createHostnameCsr(serverKeyPair, serverSubjectDN, httpsAddress.getHostName());
     }
 
     private X509Certificate firstCertificate(Certificate[] serverCertificates) {

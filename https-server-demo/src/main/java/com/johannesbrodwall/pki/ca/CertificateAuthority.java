@@ -12,7 +12,7 @@ import java.time.ZonedDateTime;
 import java.util.Optional;
 
 public interface CertificateAuthority {
-    X509Certificate getCaCertificate() throws KeyStoreException;
+    X509Certificate getCaCertificate();
 
     X509Certificate issueServerCertificate(String hostname, String subject, ZonedDateTime validFrom, PublicKey publicKey) throws IOException, GeneralSecurityException;
 

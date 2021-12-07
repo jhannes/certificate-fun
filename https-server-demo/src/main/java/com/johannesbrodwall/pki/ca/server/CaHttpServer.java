@@ -1,5 +1,6 @@
 package com.johannesbrodwall.pki.ca.server;
 
+import com.johannesbrodwall.pki.ca.CertificateAuthority;
 import com.johannesbrodwall.pki.ca.SunCertificateAuthority;
 import com.johannesbrodwall.pki.infrastructure.SslServerConnector;
 import com.johannesbrodwall.pki.util.SslUtil;
@@ -64,11 +65,11 @@ public class CaHttpServer {
         }
     }
 
-    private SunCertificateAuthority createCertificateAuthority(ConfigMap config) throws IOException, GeneralSecurityException {
+    private CertificateAuthority createCertificateAuthority(ConfigMap config) throws IOException, GeneralSecurityException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
 
-        SunCertificateAuthority certificateAuthority = new SunCertificateAuthority(
+        CertificateAuthority certificateAuthority = new SunCertificateAuthority(
                 config.optional("validityPeriod").map(Period::parse).orElse(Period.ofDays(1)),
                 generator.generateKeyPair(),
                 config.get("create.issuerDN"),
@@ -88,14 +89,14 @@ public class CaHttpServer {
         return lastPeriod > 0 ? path.substring(0, lastPeriod) : path;
     }
 
-    private SunCertificateAuthority loadCertificateAuthority(ConfigMap config, Path keyStoreFile) throws GeneralSecurityException, IOException {
+    private CertificateAuthority loadCertificateAuthority(ConfigMap config, Path keyStoreFile) throws GeneralSecurityException, IOException {
         return new SunCertificateAuthority(
                 loadKeyStore(keyStoreFile, config.getOrDefault("keystorePassword", "")),
                 config.optional("validityPeriod").map(Period::parse).orElse(Period.ofDays(1))
         );
     }
 
-    private void setCertificateAuthority(SunCertificateAuthority certificateAuthority, ConfigMap config) throws Exception {
+    private void setCertificateAuthority(CertificateAuthority certificateAuthority, ConfigMap config) throws Exception {
         secureConnector.stop();
 
         caApplication.setCertificateAuthority(certificateAuthority);
@@ -109,7 +110,7 @@ public class CaHttpServer {
         );
     }
 
-    private SSLContext createSslContext(InetSocketAddress address, SunCertificateAuthority certificateAuthority) throws GeneralSecurityException, IOException, InvalidNameException {
+    private SSLContext createSslContext(InetSocketAddress address, CertificateAuthority certificateAuthority) throws GeneralSecurityException, IOException, InvalidNameException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         KeyPair keyPair = generator.generateKeyPair();
 
