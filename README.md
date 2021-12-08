@@ -6,30 +6,14 @@ Private Key Infrastructure (PKI) is what creates security on the public web and 
 
 As part of this work, I've also created a clean-room implementation of code for [building and parsing of certificates](liquidpki/README.md), including parsing and generating ASN.1 DER objects.
 
-
-```plantuml
-@startuml
-participant ca
-participant secure
-
-database keystore
-participant browser
-
-ca -> keystore: User installs .crt as Trusted Root CA
-secure -> ca: Server requests certificate (csr)
-secure <-- ca: Signed certificate (crt)
-
-secure -> browser: Authorizes with certificate
-browser -> keystore: Checks CA
-@enduml
-```
+![Issuing certificates](docs\sequence.png)
 
 
 ## What we will fix (browser edition)
 
 When the certificate chain is not set up correctly, you get the following error on your browser:
 
-![Browser with certificate error](C:\Users\johannes\IdeaProjects\certificate-fun\docs\browser-invalid-ca.png)
+![Browser with certificate error](docs\browser-invalid-ca.png)
 
 ## What we will fix (Java edition)
 

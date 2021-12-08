@@ -1,0 +1,16 @@
+```plantuml
+@startuml
+participant ca
+participant secure
+
+database keystore
+participant browser
+
+ca -> keystore: User installs .crt as Trusted Root CA
+secure -> ca: Server requests certificate (csr)
+secure <-- ca: Signed certificate (crt)
+
+secure -> browser: Authorizes with certificate
+browser -> keystore: Checks CA
+@enduml
+```
