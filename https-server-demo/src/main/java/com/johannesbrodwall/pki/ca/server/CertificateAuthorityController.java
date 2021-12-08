@@ -2,6 +2,7 @@ package com.johannesbrodwall.pki.ca.server;
 
 import com.johannesbrodwall.pki.ca.CertificateAuthority;
 import com.johannesbrodwall.pki.infrastructure.Multipart;
+import com.johannesbrodwall.pki.infrastructure.OpenIdAuthenticationFilter;
 import com.johannesbrodwall.pki.util.SslUtil;
 import com.johannesbrodwall.pki.util.SunCertificateUtil;
 import org.actioncontroller.actions.POST;

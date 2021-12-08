@@ -2,6 +2,7 @@ package com.johannesbrodwall.pki.ca.server;
 
 import com.johannesbrodwall.pki.ca.CertificateAuthority;
 import com.johannesbrodwall.pki.https.server.EchoServlet;
+import com.johannesbrodwall.pki.infrastructure.OpenIdAuthenticationFilter;
 import org.actioncontroller.servlet.ApiServlet;
 
 import javax.servlet.DispatcherType;

@@ -102,7 +102,7 @@ public class SunCertificateAuthority implements CertificateAuthority {
         return doIssueCertificate(pkcs10.getSubjectName().toString(), validFrom, pkcs10.getSubjectPublicKeyInfo(), certificateExtensions);
     }
 
-    private X509CertImpl doIssueCertificate(String subject, ZonedDateTime validFrom, PublicKey publicKey, Optional<CertificateExtensions> certificateExtensions) throws GeneralSecurityException, IOException {
+    private X509Certificate doIssueCertificate(String subject, ZonedDateTime validFrom, PublicKey publicKey, Optional<CertificateExtensions> certificateExtensions) throws GeneralSecurityException, IOException {
         return sign(SunCertificateUtil.createX509Cert(
                 new X500Name(subject),
                 getIssuer(),

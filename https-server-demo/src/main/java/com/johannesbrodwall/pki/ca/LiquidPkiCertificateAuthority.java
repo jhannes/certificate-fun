@@ -68,7 +68,10 @@ public class LiquidPkiCertificateAuthority implements CertificateAuthority {
 
     @Override
     public X509Certificate issueServerCertificate(String hostname, String subject, ZonedDateTime validFrom, PublicKey publicKey) throws GeneralSecurityException {
-        return signCertificate(createCertificateToBeSigned(new X500Name(subject), validFrom, publicKey).addExtension(new Extension.SANExtensionType().dnsName(hostname)));
+        return signCertificate(
+                createCertificateToBeSigned(new X500Name(subject), validFrom, publicKey)
+                        .addExtension(new Extension.SANExtensionType().dnsName(hostname))
+        );
     }
 
     @Override

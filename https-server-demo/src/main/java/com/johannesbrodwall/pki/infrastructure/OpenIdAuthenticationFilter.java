@@ -1,4 +1,4 @@
-package com.johannesbrodwall.pki.ca.server;
+package com.johannesbrodwall.pki.infrastructure;
 
 import org.eclipse.jetty.security.DefaultUserIdentity;
 import org.eclipse.jetty.security.UserAuthentication;

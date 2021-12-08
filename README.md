@@ -6,8 +6,6 @@ Private Key Infrastructure (PKI) is what creates security on the public web and 
 
 As part of this work, I've also created a clean-room implementation of code for [building and parsing of certificates](liquidpki/README.md), including parsing and generating ASN.1 DER objects.
 
-![Issuing certificates](docs/sequence.png)
-
 
 ## What we will fix (browser edition)
 
@@ -77,3 +75,98 @@ You can still issue your own client certificates, which will let you manage cert
 For your clients to be validated with the http ingress, your internal CA root certificate must be installed at the proxy. The http ingress validates the client certificate and forwards the certificate information to the app server as an http header
 
 ![](docs/deployment.png)
+
+
+## Key code takeaways
+
+### Java code to connect as a client to an https-server
+
+```jshelllanguage
+HttpsURLConnection connection = (HttpsURLConnection) new URL(this.url, spec).openConnection();
+connection.setSSLSocketFactory(sslContext.getSocketFactory());
+
+int responseCode = connection.getResponseCode();
+```
+
+### Java code to create a SSLContext
+
+```jshelllanguage
+Optional<Path> keyStorePath;
+String keyStorePassword;
+String keyPassword;
+Optional<Path> trustedCertificatePaths;
+
+// Private key
+KeyManager[] keyManagers = null;
+if (keyStorePath.isPresent()) {
+    KeyStore keyStore = KeyStore.getInstance("pkcs12");
+    try (InputStream inputStream = Files.newInputStream(keyStorePath.get())) {
+        keyStore.load(inputStream, keyStorePassword.toCharArray());
+    }
+    KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+    keyManagerFactory.init(keyStore, keyPassword.toCharArray());
+    keyManagers = keyManagerFactory.getKeyManagers();
+}
+
+// Certificate Authority
+TrustManager[] trustManagers = null;
+if (trustedCertificatePaths.isPresent()) {
+    KeyStore trustStore = KeyStore.getInstance("pkcs12");
+    trustStore.load(null, null);
+
+    X509Certificate certificate;
+    try (InputStream input = Files.newInputStream(trustedCertificatePaths.get())) {
+        certificate = (X509Certificate) CertificateFactory.getInstance("X509").generateCertificate(input);
+    }
+    trustStore.setCertificateEntry("ca", certificate);
+    TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+    factory.init(trustStore);
+    trustManagers = factory.getTrustManagers();
+}
+
+// SSL Context
+SSLContext sslContext = SSLContext.getInstance("TLS");
+sslContext.init(keyManagers, trustManagers, null);
+```
+
+### Code to generate a X509 Certificate in Java
+
+```jshelllanguage
+import sun.security.x509.X509CertInfo;
+
+X509CertInfo certInfo = new X509CertInfo();
+certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
+certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(
+        Date.from(validFrom.toInstant()),
+        Date.from(validTo.toInstant())
+));
+certInfo.set(X509CertInfo.SERIAL_NUMBER,
+        new CertificateSerialNumber(new BigInteger(64, new SecureRandom())));
+certInfo.set(X509CertInfo.ALGORITHM_ID,
+        new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.sha512WithRSAEncryption_oid)));
+certInfo.set(X509CertInfo.SUBJECT, subject);
+certInfo.set(X509CertInfo.ISSUER, issuer);
+certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
+if (extensions.isPresent()) {
+    certInfo.set(X509CertInfo.EXTENSIONS, extensions.get());
+}
+
+X509CertImpl x509Cert = new X509CertImpl(certInfo);
+x509Cert.sign(caPrivateKey, "SHA512withRSA");
+
+X509Certificate certificate = x509Cert;
+```
+
+### Packaging a certificate and key in a p12 KeyStore
+
+```jshelllanguage
+KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+generator.initialize(2048);
+KeyPair keyPair = generator.generateKeyPair();
+
+X509Certificate certificate = certificateAuthority.issueClientCertificate(subjectName, ZonedDateTime.now(), keyPair.getPublic());
+
+KeyStore keyStore = KeyStore.getInstance("pkcs12");
+keyStore.load(null, null);
+keyStore.setKeyEntry("keyAndCertificate", keyPair.getPrivate(), null, new Certificate[] { certificate });
+```

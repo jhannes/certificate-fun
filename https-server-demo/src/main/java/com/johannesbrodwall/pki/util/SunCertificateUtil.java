@@ -39,7 +39,11 @@ import java.util.Optional;
 public class SunCertificateUtil {
 
     public static byte[] createHostnameCsr(KeyPair keyPair, String subjectDN, String hostname) throws NoSuchAlgorithmException, InvalidKeyException, IOException, CertificateException, SignatureException {
-        return encodeAndSign(new PKCS10(keyPair.getPublic(), createHostnameAttributes(hostname)), new X500Name(subjectDN), keyPair.getPrivate());
+        return encodeAndSign(
+                new PKCS10(keyPair.getPublic(), createHostnameAttributes(hostname)),
+                new X500Name(subjectDN),
+                keyPair.getPrivate()
+        );
     }
 
     private static PKCS10Attributes createHostnameAttributes(String hostname) throws IOException {

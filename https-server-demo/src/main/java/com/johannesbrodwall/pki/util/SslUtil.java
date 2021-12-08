@@ -66,7 +66,7 @@ public class SslUtil {
         if (keyStoreFile == null) {
             return null;
         }
-        KeyStore keyStore = KeyStore.getInstance(keyStoreFile.getFileName().toString().endsWith(".p12") ? "pkcs12" : KeyStore.getDefaultType());
+        KeyStore keyStore = KeyStore.getInstance("pkcs12");
         try (InputStream inputStream = Files.newInputStream(keyStoreFile)) {
             keyStore.load(inputStream, password.toCharArray());
         }
