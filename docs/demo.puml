@@ -1,0 +1,32 @@
+@startuml
+title Demo server components
+
+cloud {
+    node "Browser <&person>" as browser {
+        file " ca cert <&document>\n signing request <&document>\n client certificate <&document>"
+    }
+
+    node Client {
+        file " ca cert <&document>\n client keystore <&document>"
+    }
+}
+
+cloud {
+    node HttpsServer {
+        file " private key <&lock-locked>\n server cert <&document>\n ca cert <&document>"
+    }
+
+
+    node CaServer {
+        file " ca key <&lock-locked>\n self-signed host cert <&document>"
+    }
+}
+
+
+Client --> HttpsServer
+browser --> HttpsServer
+browser --> CaServer
+
+
+
+@enduml

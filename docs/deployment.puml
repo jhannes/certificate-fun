@@ -1,0 +1,45 @@
+@startuml
+title "Deployment in a real life scenario"
+
+cloud {
+    node client {
+        file "PublicCaCertificate <&document>" as publiccacert #aliceblue
+        file "ClientCertificateAndKey <&lock-locked>" #palegreen
+        actor User
+    }
+
+    cloud {
+        node LoadBalancer {
+            file "SiteCertificateAndPrivateKey <&lock-locked>" as hostcert #aliceblue
+            file "CaCertificate <&document>" #palegreen
+        }
+        note left of LoadBalancer: Terminates https
+
+
+        node ApplicationServer {
+            component CertificateIssuer {
+                file "CaCertificateAndPrivateKey <&lock-locked>" #palegreen
+            }
+            database CertificateStorage {
+                collections "IssuedCertificates <&document>" #palegreen
+            }
+
+            CertificateIssuer ..> CertificateStorage
+        }
+    }
+
+
+
+    User ..> LoadBalancer: https (with client certificate)
+
+    LoadBalancer ..> ApplicationServer: http (with client certificate as http header)
+
+    publiccacert ..> Letsencrypt: Verifies site certificate
+    hostcert <.. Letsencrypt: Issue certificate
+}
+
+node Letsencrypt {
+    file "PublicCaCertificateAndPrivateKey <&lock-locked>" #aliceblue
+}
+
+@enduml

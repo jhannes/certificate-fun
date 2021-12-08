@@ -1,14 +1,19 @@
-ca.keystore=https-server-demo/src/test/resources/certificates/ca.p12
+ca.keystore=certs/ca/ca.p12
+#ca.keystorePassword=
+ca.create.ifMissing=true
+#ca.create.ifPresent=false
+ca.create.issuerDN=
+ca.https.address=ca.javazone.local:10443
 
-# hostname:port
-https.address=
-
-https.wantClientAuth=true
+https.key=certs/server/server.key
+https.address=app.javazone.local:30443
+https.certificate=certs/server/app.javazone.local.crt
+https.wantClientAuth=false
 https.needClientAuth=false
-https.keystore=https-server-demo/src/test/resources/certificates/server.p12
-https.keyPassword=
-https.trustedCertificates=https-server-demo/src/test/resources/certificates/ca.crt
+https.trustedCertificates=certs/ca/ca.crt
 
-client.url=
-client.key.keyStore=https-server-demo/src/test/resources/certificates/client.p12
-client.key.trustedCertificates=https-server-demo/src/test/resources/certificates/ca.crt
+client.url=https://app.javazone.local:30443/
+client.key.trustedCertificates=certs/ca/ca.crt
+#client.key.keyStore=
+#client.key.keyStorePassword=
+#client.key.keyPassword=

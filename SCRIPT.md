@@ -1,5 +1,8 @@
 # Intro - certificates and you
 
+The goal of this demo is to show all the steps needed to have an untrusted server with an untrusted client and
+no certificate authority until the client and server 
+
 Here is a web server with no established trust. I will show the steps from your computer and your programs know
 nothing about the certificates until trust is established.
 
@@ -124,15 +127,6 @@ There's also a code example of how to generate a certification request in Java i
 We use certification issuance to keep track of all certificate clients of our server. Even though we terminate
 SSL on the HTTP proxy layer, we issue our own certificates in Java. This way we have the identity of all
 certificates in a database and can maintain privileges for computer users associated with each certificate
-
-### Host certificates
-
-
-# TODO
-
-* [ ] Generate p12-file
-* [ ] Separate CA server which generates and stores host certificate in memory
-* [ ] Run https-server with .key-file + .crt-file
 
 
 ## Summary
