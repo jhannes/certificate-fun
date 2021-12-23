@@ -51,11 +51,11 @@ Initially all lines are commented out.
    not starting https. But it generates a .key with the private key and a .csr-file with the certification request.
 3. Upload the .csr file to https://javazone.ssldemo.local:8443 to generate a certificate, which should be placed
    according to the configuration in `pkidemo.properties`
-4. The server will not start the https-port and you can access it at https://server.local:10443 
+4. The server will now start the https-port and you can access it at https://server.local:10443
 
 ## Browser client validation
 
-1. If you change `https.wantsClientAuth=true` and restart the browser (sorry), the server will prompt you for a
+1. If you change `https.wantClientAuth=true` and restart the browser (sorry), the server will prompt you for a
    certificate. But it will not accept any certificate you already have because it requires the same CA as we
    just created. Press escape and you will still come to the server
 2. Go to "Show client certificate" and the server will respond that it has no client certificate
@@ -68,7 +68,7 @@ We will look at ways to avoid this.
 
 ## Theory: What's certificates and Public Key Infrastructure really about?
 
-The trust estabilished in a Public Key Infrastructure is based on a few base assumptions:
+The trust established in a Public Key Infrastructure is based on a few base assumptions:
 
 * There exists keypairs with the mathematical property that what is encrypted by one of the members of the pair
   can be decrypted with the other and vice-versa, while knowing one doesn't make it possible to uncover the other.
@@ -90,7 +90,7 @@ the identity of the parties before issuing a certificate. These are hard problem
 simple cases:
 
 * Operating systems ship with the certificates of a list of well known CAs
-* CAs like letsencrypt issues challenges to parties that the place files at a URL for a hostname they claim
+* CAs like letsencrypt issues challenges to parties to place files at a URL for a hostname they claim
   to control. This means that while creating certificates, letsencrypt would be vulnerable to DNS poisoning
   attacks
 
@@ -110,7 +110,7 @@ simple cases:
 
 ### Use a Certification Request to generate a certificate
 
-When we generated the p12 from the server, the server generated both the private key and the certificate and sent
+When we generated the p12-file from the server, the server generated both the private key and the certificate and sent
 both to the client. In our case the server doesn't retain a copy of the private key (or the certificate for that
 matter), but the client has no guarantee of this. A better approach to maintain trust barriers is for the client
 to send a Certification Request to the server. The certification request contains the identification requested
