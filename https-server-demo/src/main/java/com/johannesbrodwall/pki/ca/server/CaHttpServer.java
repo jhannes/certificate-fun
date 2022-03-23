@@ -8,6 +8,7 @@ import com.johannesbrodwall.pki.infrastructure.WebApplication;
 import org.actioncontroller.config.ConfigMap;
 import org.actioncontroller.config.ConfigObserver;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.MovedContextHandler;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -38,6 +39,7 @@ public class CaHttpServer {
 
     private final Server server = new Server();
     private final SslServerConnector secureConnector = new SslServerConnector(server);
+    private final ServerConnector connector = new ServerConnector(server);
     private final CaAppListener caApplication = new CaAppListener();
     private final WebAppContext application = new WebApplication("/webapp", "/ca", caApplication);
 
@@ -45,6 +47,7 @@ public class CaHttpServer {
         CaHttpServer server = new CaHttpServer();
         new ConfigObserver("pkidemo")
                 .onPrefixedValue("ca.authentication", server::setAuthentication)
+                .onInetSocketAddress("ca.http.address", 11080, server::setHttpAddress)
                 .onPrefixedValue("ca", server::setCaConfiguration);
 
         server.start();
@@ -70,7 +73,7 @@ public class CaHttpServer {
         generator.initialize(2048);
 
         CertificateAuthority certificateAuthority = new SunCertificateAuthority(
-                config.optional("validityPeriod").map(Period::parse).orElse(Period.ofDays(1)),
+                config.optional("validityPeriod").map(Period::parse).orElse(Period.ofYears(1)),
                 generator.generateKeyPair(),
                 config.get("create.issuerDN"),
                 ZonedDateTime.now()
@@ -100,7 +103,7 @@ public class CaHttpServer {
         secureConnector.stop();
 
         caApplication.setCertificateAuthority(certificateAuthority);
-        InetSocketAddress address = config.getInetSocketAddress("https.address", 10443);
+        InetSocketAddress address = config.getInetSocketAddress("https.address", 11443);
 
         secureConnector.start(
                 address,
@@ -125,6 +128,12 @@ public class CaHttpServer {
         return SslUtil.createSslContext(keyStore, null, List.of(caCertificate));
     }
 
+    private void setHttpAddress(InetSocketAddress httpAddress) throws Exception {
+        connector.stop();
+        connector.setPort(httpAddress.getPort());
+        connector.start();
+    }
+
     private void replace(LdapName subjectName, String attribute, String value) throws InvalidNameException {
         for (int i = subjectName.size() - 1; i >= 0; i--) {
             if (subjectName.getRdn(i).getType().equals(attribute)) {
@@ -141,6 +150,7 @@ public class CaHttpServer {
                 new MovedContextHandler(null, "/", application.getContextPath())
         ));
         server.addConnector(secureConnector);
+        server.addConnector(connector);
         server.start();
     }
 }

@@ -42,7 +42,7 @@ public class HttpsDemoClient {
         Optional<Path> keyStorePath = configMap.optionalFile("keyStore");
         String keyStorePassword = ((Map<String, String>) configMap).getOrDefault("keyStorePassword", "");
         String keyPassword = ((Map<String, String>) configMap).getOrDefault("keyPassword", "");
-        Optional<Path> trustedCertificatePaths = configMap.optionalFile("trustedCertificates");
+        Optional<Path> trustedCertificatePath = configMap.optionalFile("trustedCertificates");
 
         // Private key
         KeyManager[] keyManagers = null;
@@ -59,12 +59,12 @@ public class HttpsDemoClient {
 
         // Certificate Authority
         TrustManager[] trustManagers = null;
-        if (trustedCertificatePaths.isPresent()) {
+        if (trustedCertificatePath.isPresent()) {
             KeyStore trustStore = KeyStore.getInstance("pkcs12");
             trustStore.load(null, null);
 
             X509Certificate certificate;
-            try (InputStream input = Files.newInputStream(trustedCertificatePaths.get())) {
+            try (InputStream input = Files.newInputStream(trustedCertificatePath.get())) {
                 certificate = (X509Certificate) CertificateFactory.getInstance("X509").generateCertificate(input);
             }
             trustStore.setCertificateEntry("ca", certificate);

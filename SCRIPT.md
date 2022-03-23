@@ -26,7 +26,7 @@ Initially all lines are commented out.
    (Distinguished Name). Finally, I specify that it can be created if missing `ca.create.ifMissing` 
 3. When I start the server, we can see that the file is created. In addition, the server exports a `.crt` with the same
    name.
-4. I can now go to https://localhost:8443, but I get the message that the CA is untrusted. In the browser, we can
+4. I can now go to https://localhost:11443, but I get the message that the CA is untrusted. In the browser, we can
    examine the Certification Path and see that the CA that issued this certificate is not trusted
 5. I can install the `ca.crt` file in my operating system as a Trusted Root Authority. The browser will now trust the
    server, ***but watch out** Chrome needs to be restarted to refresh the Root CAs* (actually restarting the
@@ -35,23 +35,26 @@ Initially all lines are commented out.
 ## Host name validation
 
 1. Looking further down in `pkidemo.properties`, we find `ca.https.address`. You won't have so much use of a server
-   running only on localhost, so change it to `ca.https.address=javazone.ssldemo.local:8443`
-2. If you go to https://localhost:8443 you will now get a warning from the browser that the hostname doesn't
+   running only on localhost, so change it to `ca.https.address=ca.boosterconf.local:11443`
+2. If you go to https://localhost:11443 you will now get a warning from the browser that the hostname doesn't
    match the certificate
-3. If you go to https://javazone.ssldemo.local:8443 you probably will not get any luck. But update your hosts-file
+3. If you go to https://ca.boosterconf.local:11443/ you probably will not get any luck. But update your hosts-file
    (`C:\Windows\System32\drivers\etc\hosts` on Windows) and you will work better
-4. If you examine the certificate, you will see that the name java.ssldemo.local occurs both in the CN (common name)
+4. If you examine the certificate, you will see that the name ca.boosterconf.local occurs both in the CN (common name)
    and as an extended certificate attribute
+
+**Quiz:** In what extended certificate attribute does the hostname occur? What is the difference between this as the CN attribute?
 
 ## Creating a new server
 
 1. When I start `HttpsDemoServer`, this server currently doesn't have a host
-   certificate. It will start on http://localhost:10080, though
-2. I can update `https.address=server.local:10443`. Since it doesn't have a certificate, the server is still
-   not starting https. But it generates a .key with the private key and a .csr-file with the certification request.
-3. Upload the .csr file to https://javazone.ssldemo.local:8443 to generate a certificate, which should be placed
-   according to the configuration in `pkidemo.properties`
-4. The server will now start the https-port and you can access it at https://server.local:10443
+   certificate. It will start on http://localhost:8080, though
+2. I can update `https.address=app.boosterconf.local:8443`. Since it doesn't have a certificate, the server is still
+   not starting https. But it will try to create .key with the private key and a .csr-file with the certification request.
+3. Specify `https.key=certs/server/server.key` in `pkdemo.properties` so it can be generated
+4. Upload the .csr file to https://ca.boosterconf.local:11443/ to generate a certificate, which should be placed
+   according to the configuration `https.certificate=` in `pkidemo.properties`
+5. The server will now start the https-port and you can access it at https://app.boosterconf.local:11443
 
 ## Browser client validation
 
@@ -59,9 +62,10 @@ Initially all lines are commented out.
    certificate. But it will not accept any certificate you already have because it requires the same CA as we
    just created. Press escape and you will still come to the server
 2. Go to "Show client certificate" and the server will respond that it has no client certificate
-3. Let's ask the server to generate a key and certificate for us. Enter `CN=whatever` as Common name and "Generate p12-file"
+3. Let's ask the CA server to generate a key and certificate for us. Enter `CN=whatever` as Common name and "Generate p12-file"
 4. You will now get a file downloaded on your computer. Install it as a personal certificate
 5. When you restart the browser you can now see your client certificate
+6. You have to add `https.server`
 
 **Note**: In this scenario, the server has the chance to sniff the client certificate, which is not ideal.
 We will look at ways to avoid this.
@@ -97,7 +101,7 @@ simple cases:
 
 ## Java client server validation
 
-1. `pkidemo.properties` has client URL. Set `client.url=https://javazone.ssldemo.local:8443/demo/test`, when
+1. `pkidemo.properties` has client URL. Set `client.url=https://boosterconf.ssldemo.local:8443/demo/test`, when
    you run `com.johannesbrodwall.pki.client.HttpsDemoClient` you get an exception
 2. This is because even though your OS trusts the CA, Java maintains its own list of certificate authorities.
    We can update the Java-installation, but that is normally not practical. Instead, we set the configuration
@@ -127,13 +131,4 @@ There's also a code example of how to generate a certification request in Java i
 We use certification issuance to keep track of all certificate clients of our server. Even though we terminate
 SSL on the HTTP proxy layer, we issue our own certificates in Java. This way we have the identity of all
 certificates in a database and can maintain privileges for computer users associated with each certificate
-
-
-## Summary
-
-1. Empty pkidemo.properties
-2. Get ca up and running
-3. Get https server up and running
-4. Get https client up and running
-
 

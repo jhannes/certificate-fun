@@ -1,6 +1,5 @@
 package com.johannesbrodwall.pki.https.server;
 
-import com.johannesbrodwall.pki.ca.server.CertificateAuthorityController;
 import com.johannesbrodwall.pki.infrastructure.SslServerConnector;
 import com.johannesbrodwall.pki.util.SslUtil;
 import com.johannesbrodwall.pki.util.SunCertificateUtil;
@@ -82,8 +81,8 @@ public class HttpsDemoServer {
         }
     }
 
-    public void setHttpsConfiguration(InetSocketAddress localhost, SSLContext sslContext) throws Exception {
-        secureConnector.start(localhost, sslContext, true, false);
+    public void setHttpsConfiguration(InetSocketAddress address, SSLContext sslContext) throws Exception {
+        secureConnector.start(address, sslContext, true, false);
     }
 
     public void start() throws Exception {

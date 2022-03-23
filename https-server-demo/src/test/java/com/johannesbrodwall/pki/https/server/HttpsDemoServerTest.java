@@ -47,7 +47,7 @@ class HttpsDemoServerTest {
 
     @Test
     void shouldEchoClientCertificate() throws Exception {
-        InetSocketAddress httpsAddress = new InetSocketAddress("app.javazone.local", 0);
+        InetSocketAddress httpsAddress = new InetSocketAddress("app.boosterconf.local", 0);
 
         Path directory = Path.of("src/test/resources/certificates/");
         X509Certificate caCertificate = readCertificate(directory.resolve("ca.crt"));
@@ -81,8 +81,8 @@ class HttpsDemoServerTest {
         SslUtil.storeKeyStore(ca.getKeyStore(), directory.resolve("ca.p12"), "");
         ca = new SunCertificateAuthority(loadKeyStore(directory.resolve("ca.p12"), ""), Period.ofDays(1));
 
-        String clientSubjectDN = "CN=JavaZone Demo Cert" + UUID.randomUUID() + ", OU=dev, O=" + org;
-        InetSocketAddress httpsAddress = new InetSocketAddress("app.javazone.local", 0);
+        String clientSubjectDN = "CN=Booster Demo Cert" + UUID.randomUUID() + ", OU=dev, O=" + org;
+        InetSocketAddress httpsAddress = new InetSocketAddress("app.boosterconf.local", 0);
 
         X509Certificate caCertificate = ca.getCaCertificate();
         writeCertificate(caCertificate, directory.resolve("ca.crt"));

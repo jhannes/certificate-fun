@@ -3,16 +3,16 @@ ca.keystore=certs/ca/ca.p12
 ca.create.ifMissing=true
 #ca.create.ifPresent=false
 ca.create.issuerDN=
-ca.https.address=ca.javazone.local:10443
+ca.https.address=ca.boosterconf.local:11443
 
 https.key=certs/server/server.key
-https.address=app.javazone.local:30443
-https.certificate=certs/server/app.javazone.local.crt
+https.address=app.boosterconf.local:30443
+https.certificate=certs/server/app.boosterconf.local.crt
 https.wantClientAuth=false
 https.needClientAuth=false
 https.trustedCertificates=certs/ca/ca.crt
 
-client.url=https://app.javazone.local:30443/
+client.url=https://app.boosterconf.local:30443/
 client.key.trustedCertificates=certs/ca/ca.crt
 #client.key.keyStore=
 #client.key.keyStorePassword=
