@@ -62,7 +62,7 @@ public class HttpsDemoServer {
                     address,
                     createSslContext(
                             createKeyStore(readPrivateKey(keyFile.get()), null, readCertificate(certificate.get())),
-                            null,
+                            config.get("password").toCharArray(),
                             readCertificates(config.listFiles("trustedCertificates"))
                     ),
                     config.getBoolean("wantClientAuth"),

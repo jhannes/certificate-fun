@@ -123,7 +123,12 @@ public class CaHttpServer {
         KeyStore keyStore = createKeyStore(
                 keyPair.getPrivate(),
                 null,
-                certificateAuthority.issueServerCertificate(address.getHostName(), subjectName.toString(), ZonedDateTime.now(), keyPair.getPublic())
+                certificateAuthority.issueServerCertificate(
+                        address.getHostName(),
+                        subjectName.toString(),
+                        ZonedDateTime.now(),
+                        keyPair.getPublic()
+                )
         );
         return SslUtil.createSslContext(keyStore, null, List.of(caCertificate));
     }

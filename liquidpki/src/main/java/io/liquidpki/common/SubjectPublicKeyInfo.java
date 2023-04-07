@@ -13,10 +13,10 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SubjectPublicKeyInfo {
-    private final BigInteger modulus;
     private Der der;
     protected final Der.OBJECT_IDENTIFIER algorithm;
     protected final Der.BIT_STRING subjectPublicKey;
+    private final BigInteger modulus;
     private BigInteger exponent;
 
     public SubjectPublicKeyInfo(Der der) {

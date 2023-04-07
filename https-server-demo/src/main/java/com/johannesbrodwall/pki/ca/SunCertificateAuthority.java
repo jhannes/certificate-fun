@@ -80,7 +80,10 @@ public class SunCertificateAuthority implements CertificateAuthority {
         CertificateExtensions extensions = new CertificateExtensions();
         extensions.set(
                 SubjectAlternativeNameExtension.NAME,
-                new SubjectAlternativeNameExtension(SunCertificateUtil.createGeneralNames(List.of(new GeneralName(new DNSName(hostname)))))
+                new SubjectAlternativeNameExtension(SunCertificateUtil.createGeneralNames(List.of(
+                        new GeneralName(new DNSName(hostname)),
+                        new GeneralName(new DNSName("localhost")))
+                ))
         );
         return doIssueCertificate(subject, validFrom, publicKey, Optional.of(extensions));
     }
